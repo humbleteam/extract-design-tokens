@@ -1,0 +1,62 @@
+name: validate
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate skill structure
+        run: |
+          set -euo pipefail
+
+          if [ ! -f SKILL.md ]; then
+            echo "SKILL.md is missing"
+            exit 1
+          fi
+
+          if [ ! -f README.md ]; then
+            echo "README.md is missing"
+            exit 1
+          fi
+
+          NAME_LINE=$(grep -m1 '^name:' SKILL.md || true)
+          if [ -z "$NAME_LINE" ]; then
+            echo "SKILL.md frontmatter is missing a name: field"
+            exit 1
+          fi
+
+          NAME_VALUE=$(echo "$NAME_LINE" | sed 's/^name:[[:space:]]*//')
+          if [ -z "$NAME_VALUE" ]; then
+            echo "name: field is empty"
+            exit 1
+          fi
+
+          DESC_LINE=$(grep -m1 '^description:' SKILL.md || true)
+          if [ -z "$DESC_LINE" ]; then
+            echo "SKILL.md frontmatter is missing a description: field"
+            exit 1
+          fi
+
+          DESC_VALUE=$(echo "$DESC_LINE" | sed 's/^description:[[:space:]]*//')
+          if [ -z "$DESC_VALUE" ]; then
+            echo "description: field is empty"
+            exit 1
+          fi
+
+          REPO_DIR_NAME=$(basename "$(pwd)")
+          if [ "$NAME_VALUE" != "$REPO_DIR_NAME" ]; then
+            echo "name: ($NAME_VALUE) does not match repo directory name ($REPO_DIR_NAME)"
+            exit 1
+          fi
+
+          if ! grep -q 'SKILL.md' README.md; then
+            echo "README.md does not link to SKILL.md"
+            exit 1
+          fi
+
+          echo "All checks passed"
