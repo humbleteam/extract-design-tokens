@@ -33,6 +33,7 @@
 - Outputs a ready-to-paste `:root` CSS block and JSON in the W3C Design Tokens Community Group draft shape, every time.
 - Groups any color past the first 5-8 structural ones into a flagged long tail, instead of padding the main palette with near-duplicates.
 - Marks every unconfirmed value as `(not extracted - provide a screenshot/URL and re-run)` instead of guessing.
+- Keeps the unit the source authored, so a `rem` type scale does not come back frozen as pixels and a `clamp()` value does not get flattened to whatever the fetch viewport happened to be.
 - Re-emits the complete token set on every update, so an edit never silently drops a token you did not ask to change.
 
 ## Quick start
@@ -75,13 +76,13 @@ Below is an example run against a fictional product, Northwind Analytics, from i
   --success: #34C77B;
   --danger: #E4574C;
 
-  /* Typography */
+  /* Typography (authored in rem, root 16px) */
   --font-heading: 'Sora', system-ui, sans-serif;
   --font-body: 'Inter', system-ui, sans-serif;
-  --text-sm: 14px;
-  --text-base: 16px;
-  --text-lg: 22px;
-  --text-xl: 40px;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.375rem;
+  --text-xl: clamp(2rem, 4vw, 2.5rem);
 
   /* Spacing (base 4px) */
   --space-1: 4px;
@@ -109,7 +110,9 @@ Below is an example run against a fictional product, Northwind Analytics, from i
   },
   "typography": {
     "font-heading": { "$value": "Sora, system-ui, sans-serif", "$type": "fontFamily" },
-    "text-base": { "$value": "16px", "$type": "dimension" }
+    "text-base": { "$value": "1rem", "$type": "dimension" },
+    "text-xl-min": { "$value": "2rem", "$type": "dimension", "$description": "floor of clamp(2rem, 4vw, 2.5rem)" },
+    "text-xl-max": { "$value": "2.5rem", "$type": "dimension", "$description": "ceiling of clamp(2rem, 4vw, 2.5rem)" }
   },
   "spacing": {
     "space-2": { "$value": "8px", "$type": "dimension" }
@@ -124,7 +127,7 @@ Below is an example run against a fictional product, Northwind Analytics, from i
 ```
 
 ```
-Source: palette, typography, spacing, and radii from https://northwind-analytics.example (computed styles); motion not extracted - no transitions or hover states were visible in the fetched CSS.
+Source: palette, typography, spacing, and radii from https://northwind-analytics.example (computed styles; type scale authored in rem, root font size 16px, --text-xl fluid); motion not extracted - no transitions or hover states were visible in the fetched CSS.
 ```
 
 ## How it works
@@ -134,7 +137,8 @@ Source: palette, typography, spacing, and radii from https://northwind-analytics
 - **A palette cap with an escape hatch.** The main palette stops at 5-8 colors with a clear role. Everything past that goes into a flagged long tail.
 - **No invented values, ever.** A group with no usable source data gets `(not extracted - provide a screenshot/URL and re-run)` in both the CSS and the JSON, per group.
 - **Two outputs, always.** A `:root` CSS block for immediate use, and JSON in the W3C Design Tokens Community Group draft shape (`$value` / `$type`) for tooling.
-- **A source footer on every answer.** Each group traces back to a URL, a named screenshot file, or a CSS file.
+- **A source footer on every answer.** Each group traces back to a URL, a named screenshot file, or a CSS file, and names the root font size whenever the set contains `rem` values.
+- **Authored units survive.** A computed value settles which declaration wins, not what the token says. Storing the pixel a `rem` resolved to hard-codes the browser default and drops the reader's own font-size setting; storing a `clamp()` as one number produces a value no other viewport agrees with.
 - **Complete-set re-emission.** Updating one token means re-emitting the whole set - a partial answer would silently delete every token left out.
 - **Gradients are preserved as stops**, not flattened to a single color, since a flattened gradient loses information a developer needs to rebuild it.
 

@@ -30,8 +30,8 @@ Work through these six groups. A group that is hard to read is not a reason to s
 
 Source-specific reading:
 
-- **URL**: fetch the page, read linked CSS and inline styles, prefer computed values over declared ones when a variable gets overridden downstream.
-- **Screenshot**: read colors and proportions visually. State in the source footer that these are visual estimates, not exact hex/px reads.
+- **URL**: fetch the page, read linked CSS and inline styles, prefer computed values over declared ones when a variable gets overridden downstream. Computed values settle which declaration wins - they do not settle what the token says. For lengths, record the unit the winning declaration was authored in (Step 8).
+- **Screenshot**: read colors and proportions visually. State in the source footer that these are visual estimates, not exact hex/px reads. A picture cannot show a unit either: every length read off a screenshot is a pixel estimate, and a `rem` or fluid scale looks identical to a fixed one - say that rather than presenting px as the authored value.
 - **CSS file**: read custom properties and literal values directly. This is the highest-confidence source - prefer it over a screenshot of the same page when both are available.
 
 ## Step 2 - name every token by role, not by value
@@ -94,13 +94,13 @@ A single `:root { }` block, grouped by section with a comment header per group, 
   --text-primary: #F8FAFC;
   --text-secondary: #94A3B8;
 
-  /* Typography */
+  /* Typography (authored in rem, root 16px) */
   --font-heading: 'Inter', system-ui, sans-serif;
   --font-body: 'Inter', system-ui, sans-serif;
-  --text-sm: 14px;
-  --text-base: 16px;
-  --text-lg: 20px;
-  --text-xl: 32px;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 2rem;
 
   /* Spacing (base 4px) */
   --space-1: 4px;
@@ -135,7 +135,7 @@ Follows the W3C Design Tokens Community Group draft shape: every leaf token is a
   },
   "typography": {
     "font-heading": { "$value": "Inter, system-ui, sans-serif", "$type": "fontFamily" },
-    "text-base": { "$value": "16px", "$type": "dimension" }
+    "text-base": { "$value": "1rem", "$type": "dimension" }
   },
   "spacing": {
     "space-2": { "$value": "8px", "$type": "dimension" }
@@ -157,15 +157,27 @@ Follows the W3C Design Tokens Community Group draft shape: every leaf token is a
 Close every output with a plain-text line naming where each group came from:
 
 ```
-Source: palette + typography from https://example.com (computed styles); spacing + radii from screenshot (dashboard-2026-07.png, visual estimate); motion not extracted.
+Source: palette + typography from https://example.com (computed styles; type scale authored in rem, root font size 16px); spacing + radii from screenshot (dashboard-2026-07.png, visual estimate, units assumed px); motion not extracted.
 ```
 
 ## Step 7 - updating an existing token set
 
 If the user already has a token set from a previous run and asks to add, change, or re-check one group, re-emit the **complete** CSS block and complete JSON block, not just the changed group. A partial answer silently deletes every token left out. Carry forward every token you are not explicitly changing, byte-for-byte.
 
+## Step 8 - keep the authored unit, not the computed pixel
+
+A computed value is a measurement taken under one condition: one root font size, one viewport width, one zoom level. Storing that number as the token throws away the behavior the source actually had.
+
+- **Relative lengths stay relative.** When the winning declaration is authored in `rem`, `em`, `ch`, `%`, `vw` or `vh`, the token carries that unit. A type scale authored in `rem` and recorded as `--text-base: 16px` hard-codes the browser default and drops the reader's own font-size setting - the thing the original respected (WCAG 2.2, SC 1.4.4 Resize text).
+- **Fluid values stay whole.** `clamp(1rem, 2.5vw, 2rem)` is a rule, not a number. Store the expression: `--text-xl: clamp(1rem, 2.5vw, 2rem)`. Reading it at whatever viewport you fetched at produces a value no other viewport agrees with, and a second run at a different width silently "corrects" the token.
+- **Give fluid values a valid JSON form.** The W3C draft's `dimension` type is a single number with a `px` or `rem` unit, so a `clamp()` expression is not a valid dimension token. Emit the floor and ceiling as two dimension tokens (`text-xl-min`, `text-xl-max`) and put the full expression in the token's `$description` - tooling gets something valid, a human still sees the real rule.
+- **Name the root font size** in the source footer whenever the set contains `rem` values. A source using the `font-size: 62.5%` trick makes `1rem` equal 10px, and rem tokens read against the wrong root are wrong everywhere at once.
+- **Pixels are right when the source authored pixels.** Hairline borders, radii and shadow offsets are often fixed on purpose. The rule is to keep what the source said, not to convert everything to `rem`.
+
 ## Edge cases
 
+- **Source authored in `rem`, `em`, or `clamp()`**: see Step 8. Never store the computed pixel in place of the authored value.
+- **Root font size is not 16px** (an `html { font-size: 62.5% }` or similar): record the root value in the source footer - every `rem` token in the set depends on it.
 - **Conflicting values across multiple screenshots** (two screenshots show a different shade of the "same" primary button): do not average or silently pick one. List both values against their source and ask which is canonical.
 - **More than 8 palette colors**: see Step 3.
 - **Gradients**: see Step 5.
@@ -176,6 +188,7 @@ If the user already has a token set from a previous run and asks to add, change,
 ## Do not
 
 - Do not name tokens after their value (`--blue-500`, `--16px`).
+- Do not convert an authored `rem`, `em`, or `clamp()` value into a fixed pixel number.
 - Do not invent a hex code, font name, or spacing value that is not visible in the source.
 - Do not skip the JSON block or the CSS block - always output both.
 - Do not average or guess between conflicting sources.
