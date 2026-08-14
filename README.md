@@ -32,7 +32,7 @@
 - Names every token by role (`--accent`, `--text-secondary`), not by value (`--blue-500`), so the set survives a rebrand.
 - Outputs a ready-to-paste `:root` CSS block and JSON in the W3C Design Tokens Community Group draft shape, every time.
 - Groups any color past the first 5-8 structural ones into a flagged long tail, instead of padding the main palette with near-duplicates.
-- Marks every unconfirmed value as `(not extracted - provide a screenshot/URL and re-run)` instead of guessing.
+- Marks every unconfirmed value as `not extracted - provide a screenshot/URL and re-run` instead of guessing, in a form each file actually keeps: a comment in the CSS, an empty group with a `$description` in the JSON.
 - Keeps the unit the source authored, so a `rem` type scale does not come back frozen as pixels and a `clamp()` value does not get flattened to whatever the fetch viewport happened to be.
 - Re-emits the complete token set on every update, so an edit never silently drops a token you did not ask to change.
 
@@ -97,8 +97,7 @@ Below is an example run against a fictional product, Northwind Analytics, from i
   /* Shadows */
   --shadow-sm: 0 1px 2px rgba(4, 8, 20, 0.24);
 
-  /* Motion */
-  (not extracted - provide a screenshot/URL and re-run)
+  /* Motion: not extracted - provide a screenshot/URL and re-run */
 }
 ```
 
@@ -122,7 +121,8 @@ Below is an example run against a fictional product, Northwind Analytics, from i
   },
   "shadow": {
     "shadow-sm": { "$value": "0 1px 2px rgba(4, 8, 20, 0.24)", "$type": "shadow" }
-  }
+  },
+  "motion": { "$description": "not extracted - provide a screenshot/URL and re-run" }
 }
 ```
 
@@ -135,7 +135,7 @@ Source: palette, typography, spacing, and radii from https://northwind-analytics
 - **Fixed capture order.** Palette, typography, spacing, radii, shadows, motion, every run, so nothing gets skipped by accident.
 - **Role-first naming.** Tokens are named for what they do (`--bg-primary`), not what they equal (`--slate-900`), so a rebrand is a value swap, not a rename across the codebase.
 - **A palette cap with an escape hatch.** The main palette stops at 5-8 colors with a clear role. Everything past that goes into a flagged long tail.
-- **No invented values, ever.** A group with no usable source data gets `(not extracted - provide a screenshot/URL and re-run)` in both the CSS and the JSON, per group.
+- **No invented values, ever.** A group with no usable source data is marked not extracted in both the CSS and the JSON, per group - and never dropped, because a missing group reads as a claim that the design has none. The marker takes the shape each format preserves: a CSS comment, since bare prose in a `:root` block is a parse error that also deletes the declaration after it, and an empty JSON group carrying `$description`, since the draft requires every token's `$value` to match its `$type`.
 - **Two outputs, always.** A `:root` CSS block for immediate use, and JSON in the W3C Design Tokens Community Group draft shape (`$value` / `$type`) for tooling.
 - **A source footer on every answer.** Each group traces back to a URL, a named screenshot file, or a CSS file, and names the root font size whenever the set contains `rem` values.
 - **Authored units survive.** A computed value settles which declaration wins, not what the token says. Storing the pixel a `rem` resolved to hard-codes the browser default and drops the reader's own font-size setting; storing a `clamp()` as one number produces a value no other viewport agrees with.
@@ -167,7 +167,7 @@ Yes. Give it the updated URL, screenshot, or CSS and ask for an update. It re-em
 Not directly - it reads rendered output (a URL, a screenshot) or raw CSS, not the Figma file format. Export or screenshot the relevant frames first.
 
 **What happens if a value cannot be confirmed?**
-It is marked `(not extracted - provide a screenshot/URL and re-run)` rather than estimated. That marker tells you exactly what to supply to complete the set.
+It is marked not extracted rather than estimated, and the marker tells you exactly what to supply to complete the set. It survives in both outputs: a comment in the CSS block, and a group with a `$description` and no tokens in the JSON. The group is never left out - an absent `motion` key would say the design has no motion, which is a different claim from "we could not read it".
 
 ## Related skills
 

@@ -59,13 +59,25 @@ If the source has more than 8 genuinely distinct colors:
 
 ## Step 4 - never invent a missing value
 
-If a group has no usable source data, do not estimate. Write the literal string, in both the CSS comment and the JSON `$value`:
+If a group has no usable source data, do not estimate. Mark the group not extracted, per group rather than for the whole output. A source with a clear palette but no visible motion still yields five clean groups and one honest gap.
 
-```
-(not extracted - provide a screenshot/URL and re-run)
+The marker has one shape per output, and neither is free-form prose. A sentence dropped into a CSS block or a JSON `$value` does not survive the file it is written into.
+
+**In CSS it is a comment.** Bare text inside `:root { }` is not a declaration, so the parser discards it along with everything up to the next semicolon - and that is the next token in the block. A not-extracted palette written as bare text deletes the first real token after it, silently. The marker only looks harmless when it lands on the last group in the block, where nothing follows it to lose.
+
+```css
+  /* Motion: not extracted - provide a screenshot/URL and re-run */
 ```
 
-Do this per group, not for the whole output. A source with a clear palette but no visible motion still yields five clean groups and one honest gap.
+**In JSON it is an empty group carrying `$description`.** The group keeps its key and states the reason:
+
+```json
+"motion": { "$description": "not extracted - provide a screenshot/URL and re-run" }
+```
+
+Never hang the sentence on a leaf token. The draft requires `$value` on every token and requires that value to follow the rules for its `$type`, so `{ "$value": "(not extracted...)", "$type": "duration" }` fails validation and takes the rest of the file down with it. A group with no source data has no token names to put it under in the first place. An empty group is explicitly allowed by the draft as placeholder structure, which is exactly what this is.
+
+**Never drop the group from either output.** A missing `motion` key does not read as "not measured", it reads as "this design has no motion" - a claim the source never made. That is the same failure this step exists to prevent, arriving by omission rather than by estimate.
 
 ## Step 5 - gradients
 
@@ -181,6 +193,7 @@ A computed value is a measurement taken under one condition: one root font size,
 - **Conflicting values across multiple screenshots** (two screenshots show a different shade of the "same" primary button): do not average or silently pick one. List both values against their source and ask which is canonical.
 - **More than 8 palette colors**: see Step 3.
 - **Gradients**: see Step 5.
+- **A whole group has no usable source data**: see Step 4. The marker is a CSS comment and an empty JSON group with `$description` - never bare text in the `:root` block, never a token `$value`, and never a group quietly left out.
 - **No URL, screenshot, or CSS given**: ask for one of the three. Do not fabricate a plausible-looking palette.
 - **URL fetch fails or the page is behind auth**: say so, and ask for a screenshot instead.
 - **Screenshot too small or too compressed to read colors reliably**: say which groups you can still extract with confidence and which need a cleaner screenshot.
@@ -191,5 +204,7 @@ A computed value is a measurement taken under one condition: one root font size,
 - Do not convert an authored `rem`, `em`, or `clamp()` value into a fixed pixel number.
 - Do not invent a hex code, font name, or spacing value that is not visible in the source.
 - Do not skip the JSON block or the CSS block - always output both.
+- Do not write the not-extracted marker as bare text in the CSS block or as a token `$value` - it is a comment in one and an empty group's `$description` in the other (Step 4).
+- Do not leave a not-extracted group out of the JSON. Silence reads as "this design has none", which is a claim about the source.
 - Do not average or guess between conflicting sources.
 - Do not pad a group to a round number - a third shadow that is not in the source, added just to reach 3, is a fabrication.
