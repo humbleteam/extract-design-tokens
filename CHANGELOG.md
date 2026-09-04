@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.0] - 2026-09-04
+
+- Added `references/multi-theme.md`, the repo's first reference file, for sources that declare the same design twice - light and dark, a high-contrast mode, a switchable skin. Nothing in the skill handled them, and every rule in it assumes one value per role.
+- The gap had teeth in three places. Step 1 says to prefer computed values on a URL, and a computed value resolves under one color scheme, so a single fetch of a themed site returned one palette with nothing to say the other existed. The output shapes have room for one value per token, so there was nowhere to put a second set. Worst of the three, the edge case for conflicting screenshots fires exactly on a light and dark pair of the same screen - "two screenshots show a different shade of the same primary button" - and told the model to ask which one is canonical. Following it deletes half of a two-theme design, and the answer to the question is "both".
+- A conflict is now defined: two sources claiming the same condition and disagreeing. Two values under two declared conditions are not one. A theme has to be declared by the source - a scheme query, a theme selector, a visible switch - and is never inferred from two screenshots that merely look different.
+- The reference file carries the shapes: a second CSS block keyed to the source's own mechanism rather than one the skill invents, a sibling JSON group holding only the tokens that differ, identical token names across themes because the role does not change when the theme does, no second set for groups that do not vary, and a footer line naming the condition each set was read under.
+- A themed pair also stops landing on the Step 3 long tail. A dark background and a light background are not near-duplicate colors competing for one role.
+
 ## [1.2.0] - 2026-08-14
 
 - Step 4 now states the shape of the not-extracted marker in each output, because the literal string it prescribed was invalid in both. In CSS, bare text inside `:root { }` is not a declaration: the parser discards it and everything up to the next semicolon, so a not-extracted group deletes the first real token after it. The marker is a comment.

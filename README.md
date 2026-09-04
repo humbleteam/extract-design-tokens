@@ -35,6 +35,7 @@
 - Marks every unconfirmed value as `not extracted - provide a screenshot/URL and re-run` instead of guessing, in a form each file actually keeps: a comment in the CSS, an empty group with a `$description` in the JSON.
 - Keeps the unit the source authored, so a `rem` type scale does not come back frozen as pixels and a `clamp()` value does not get flattened to whatever the fetch viewport happened to be.
 - Re-emits the complete token set on every update, so an edit never silently drops a token you did not ask to change.
+- Reads both halves of a themed source. A light and dark palette is one role under two declared conditions, not two sources disagreeing, so neither half gets dropped for being the one you did not fetch under.
 
 ## Quick start
 
@@ -141,6 +142,7 @@ Source: palette, typography, spacing, and radii from https://northwind-analytics
 - **Authored units survive.** A computed value settles which declaration wins, not what the token says. Storing the pixel a `rem` resolved to hard-codes the browser default and drops the reader's own font-size setting; storing a `clamp()` as one number produces a value no other viewport agrees with.
 - **Complete-set re-emission.** Updating one token means re-emitting the whole set - a partial answer would silently delete every token left out.
 - **Gradients are preserved as stops**, not flattened to a single color, since a flattened gradient loses information a developer needs to rebuild it.
+- **Themes are conditions, not conflicts.** A source declaring light and dark gets a second block keyed to its own mechanism, with the same token names and only the tokens that differ - because a computed value resolves under one color scheme, and one fetch silently returns half of a two-theme design.
 
 ## How is this different from just asking the model?
 
@@ -165,6 +167,9 @@ Yes. Give it the updated URL, screenshot, or CSS and ask for an update. It re-em
 
 **Does this work with Figma files directly?**
 Not directly - it reads rendered output (a URL, a screenshot) or raw CSS, not the Figma file format. Export or screenshot the relevant frames first.
+
+**What about a site with a dark mode?**
+Both themes come back. A theme is a condition the source declares - a `prefers-color-scheme` block, a `[data-theme]` selector, a visible switch - so both values are correct and neither is dropped. The dark set is emitted as a second CSS block keyed to the source's own mechanism and a sibling JSON group, carrying only the tokens that actually differ, with the token names unchanged, since the role is the same and only the condition moved. This matters more than it sounds: a computed style resolves under one scheme, so a single fetch of a themed site returns one palette with nothing to indicate the other exists.
 
 **What happens if a value cannot be confirmed?**
 It is marked not extracted rather than estimated, and the marker tells you exactly what to supply to complete the set. It survives in both outputs: a comment in the CSS block, and a group with a `$description` and no tokens in the JSON. The group is never left out - an absent `motion` key would say the design has no motion, which is a different claim from "we could not read it".

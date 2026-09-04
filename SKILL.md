@@ -30,7 +30,7 @@ Work through these six groups. A group that is hard to read is not a reason to s
 
 Source-specific reading:
 
-- **URL**: fetch the page, read linked CSS and inline styles, prefer computed values over declared ones when a variable gets overridden downstream. Computed values settle which declaration wins - they do not settle what the token says. For lengths, record the unit the winning declaration was authored in (Step 8).
+- **URL**: fetch the page, read linked CSS and inline styles, prefer computed values over declared ones when a variable gets overridden downstream. Computed values settle which declaration wins - they do not settle what the token says. For lengths, record the unit the winning declaration was authored in (Step 8). A computed value also resolves under one color scheme, so a page with a dark theme returns only the theme you fetched under: check for a `prefers-color-scheme` block or a theme selector before treating one palette as the palette (Step 9).
 - **Screenshot**: read colors and proportions visually. State in the source footer that these are visual estimates, not exact hex/px reads. A picture cannot show a unit either: every length read off a screenshot is a pixel estimate, and a `rem` or fluid scale looks identical to a fixed one - say that rather than presenting px as the authored value.
 - **CSS file**: read custom properties and literal values directly. This is the highest-confidence source - prefer it over a screenshot of the same page when both are available.
 
@@ -186,11 +186,23 @@ A computed value is a measurement taken under one condition: one root font size,
 - **Name the root font size** in the source footer whenever the set contains `rem` values. A source using the `font-size: 62.5%` trick makes `1rem` equal 10px, and rem tokens read against the wrong root are wrong everywhere at once.
 - **Pixels are right when the source authored pixels.** Hairline borders, radii and shadow offsets are often fixed on purpose. The rule is to keep what the source said, not to convert everything to `rem`.
 
+## Step 9 - a source with more than one theme
+
+Some sources declare the same design twice: light and dark, a high-contrast mode, a switchable skin.
+Every rule above assumes one value per role, and these sources have two, so they need their own shape:
+which values to read, where the second set goes in each output, and why a themed pair is not a
+conflict. That is [references/multi-theme.md](references/multi-theme.md).
+
+The one rule to carry without opening the file: a theme is a condition the source declares, and both
+of its values are correct. Never collapse a themed pair to the one you happened to fetch under, and
+never invent a second theme the source does not declare.
+
 ## Edge cases
 
 - **Source authored in `rem`, `em`, or `clamp()`**: see Step 8. Never store the computed pixel in place of the authored value.
 - **Root font size is not 16px** (an `html { font-size: 62.5% }` or similar): record the root value in the source footer - every `rem` token in the set depends on it.
-- **Conflicting values across multiple screenshots** (two screenshots show a different shade of the "same" primary button): do not average or silently pick one. List both values against their source and ask which is canonical.
+- **Conflicting values across multiple screenshots** (two screenshots show a different shade of the "same" primary button): do not average or silently pick one. List both values against their source and ask which is canonical. A conflict is two sources claiming the *same* condition and disagreeing - if the two shots are the light and dark version of one screen, that is two declared conditions and both values are right, so it is Step 9, not this. Asking which of a themed pair is canonical deletes half the design.
+- **Source declares light and dark, a high-contrast mode, or a switchable skin**: see Step 9 and `references/multi-theme.md`. The second set goes in a block keyed to the source's own mechanism, with the same token names, carrying only the tokens that differ.
 - **More than 8 palette colors**: see Step 3.
 - **Gradients**: see Step 5.
 - **A whole group has no usable source data**: see Step 4. The marker is a CSS comment and an empty JSON group with `$description` - never bare text in the `:root` block, never a token `$value`, and never a group quietly left out.
@@ -207,4 +219,12 @@ A computed value is a measurement taken under one condition: one root font size,
 - Do not write the not-extracted marker as bare text in the CSS block or as a token `$value` - it is a comment in one and an empty group's `$description` in the other (Step 4).
 - Do not leave a not-extracted group out of the JSON. Silence reads as "this design has none", which is a claim about the source.
 - Do not average or guess between conflicting sources.
+- Do not flatten a source's second theme into one set, and do not file a themed pair as near-duplicate colors on the long-tail list - one role under two declared conditions is not two colors competing for one role.
 - Do not pad a group to a round number - a third shadow that is not in the source, added just to reach 3, is a fabrication.
+
+## Reference material
+
+See [references/multi-theme.md](references/multi-theme.md) for sources that declare more than one
+theme: how to read both without a second fetch overwriting the first, the CSS and JSON shapes for a
+themed set, the footer line that names the condition each set was read under, and the line between a
+declared condition and a genuine conflict.
