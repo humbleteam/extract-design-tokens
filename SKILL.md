@@ -81,13 +81,31 @@ Never hang the sentence on a leaf token. The draft requires `$value` on every to
 
 ## Step 5 - gradients
 
-If a background or fill is a gradient, do not collapse it to one flat hex. Store the stops in order:
+If a background or fill is a gradient, do not collapse it to one flat hex. Store the whole expression under one role name, stops in order:
 
 ```css
 --accent-gradient: linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #EC4899 100%);
 ```
 
-In JSON, use `"$type": "gradient"` with `"$value"` as an ordered array of `{ "color": ..., "position": ... }` stops.
+A gradient is one role, not one role per stop. Its stops are not palette entries: they do not count toward the 5 to 8 colors of Step 1, and they never appear on the Step 3 long tail. Three stops of one gradient are one thing the source shows in one place, not three colors competing for a role, and listing them for cleanup asks the user to merge a gradient into itself. The one token sits with the palette in both outputs: under the `/* Palette */` header in CSS, in the `color` group in JSON.
+
+In JSON, use `"$type": "gradient"` with `"$value"` as an ordered array of stops, each `{ "color": ..., "position": ... }` with the position as a number from 0 at the start of the gradient's axis to 1 at the end. Convert the CSS percentages: `50%` is `0.5`.
+
+That array carries the stops and nothing else, so everything outside the stop list has nowhere to go - the direction (`135deg`), the gradient function itself, any repeat or size argument. Dropped, a `linear-gradient(135deg, ...)` and a `radial-gradient(...)` over the same stops emit the same token, and nobody reading the JSON can rebuild either one. Put the full CSS expression in the token's `$description`, the same remedy Step 8 uses for a `clamp()` the `dimension` type cannot hold: tooling gets a valid gradient, a human still sees the real rule.
+
+```json
+"accent-gradient": {
+  "$type": "gradient",
+  "$value": [
+    { "color": "#6366F1", "position": 0 },
+    { "color": "#8B5CF6", "position": 0.5 },
+    { "color": "#EC4899", "position": 1 }
+  ],
+  "$description": "linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #EC4899 100%)"
+}
+```
+
+The CSS token and the JSON token describe the same gradient, so read them against each other before delivering: same stop colors in the same order, the same positions, and an expression in `$description` that matches the custom property byte for byte.
 
 ## Step 6 - output format
 
@@ -204,7 +222,7 @@ never invent a second theme the source does not declare.
 - **Conflicting values across multiple screenshots** (two screenshots show a different shade of the "same" primary button): do not average or silently pick one. List both values against their source and ask which is canonical. A conflict is two sources claiming the *same* condition and disagreeing - if the two shots are the light and dark version of one screen, that is two declared conditions and both values are right, so it is Step 9, not this. Asking which of a themed pair is canonical deletes half the design.
 - **Source declares light and dark, a high-contrast mode, or a switchable skin**: see Step 9 and `references/multi-theme.md`. The second set goes in a block keyed to the source's own mechanism, with the same token names, carrying only the tokens that differ.
 - **More than 8 palette colors**: see Step 3.
-- **Gradients**: see Step 5.
+- **Gradients**: see Step 5. One role, one token, in both outputs. Stops never count toward the Step 1 palette or land on the Step 3 long tail, and the JSON token carries the full CSS expression in `$description`, since its stop array cannot hold the gradient's direction.
 - **A whole group has no usable source data**: see Step 4. The marker is a CSS comment and an empty JSON group with `$description` - never bare text in the `:root` block, never a token `$value`, and never a group quietly left out.
 - **No URL, screenshot, or CSS given**: ask for one of the three. Do not fabricate a plausible-looking palette.
 - **URL fetch fails or the page is behind auth**: say so, and ask for a screenshot instead.
@@ -220,6 +238,7 @@ never invent a second theme the source does not declare.
 - Do not leave a not-extracted group out of the JSON. Silence reads as "this design has none", which is a claim about the source.
 - Do not average or guess between conflicting sources.
 - Do not flatten a source's second theme into one set, and do not file a themed pair as near-duplicate colors on the long-tail list - one role under two declared conditions is not two colors competing for one role.
+- Do not split a gradient into its stops - not as separate palette tokens, not as long-tail entries, and not as a JSON token whose direction was dropped on the way in.
 - Do not pad a group to a round number - a third shadow that is not in the source, added just to reach 3, is a fabrication.
 
 ## Reference material

@@ -141,7 +141,7 @@ Source: palette, typography, spacing, and radii from https://northwind-analytics
 - **A source footer on every answer.** Each group traces back to a URL, a named screenshot file, or a CSS file, and names the root font size whenever the set contains `rem` values.
 - **Authored units survive.** A computed value settles which declaration wins, not what the token says. Storing the pixel a `rem` resolved to hard-codes the browser default and drops the reader's own font-size setting; storing a `clamp()` as one number produces a value no other viewport agrees with.
 - **Complete-set re-emission.** Updating one token means re-emitting the whole set - a partial answer would silently delete every token left out.
-- **Gradients are preserved as stops**, not flattened to a single color, since a flattened gradient loses information a developer needs to rebuild it.
+- **Gradients are preserved whole**, not flattened to a single color and not split into one token per stop. Stops alone are not enough to rebuild one either, so the JSON token carries the full CSS expression in its `$description` - a stop array has nowhere to put the gradient's direction, and without it a linear and a radial gradient over the same stops are the same token.
 - **Themes are conditions, not conflicts.** A source declaring light and dark gets a second block keyed to its own mechanism, with the same token names and only the tokens that differ - because a computed value resolves under one color scheme, and one fetch silently returns half of a two-theme design.
 
 ## How is this different from just asking the model?

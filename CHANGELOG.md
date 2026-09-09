@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0] - 2026-09-09
+
+- Step 5 asked for a gradient's stops in JSON and stopped there, so the shape it prescribed silently dropped everything a stop array cannot hold. `"$value"` is an ordered list of `{ color, position }` and nothing else: the direction, the gradient function, any repeat or size argument have nowhere to go. A `linear-gradient(135deg, ...)` and a `radial-gradient(...)` over the same three stops emitted byte-identical tokens, and the README bullet gave the reason the rule exists - "a flattened gradient loses information a developer needs to rebuild it" - while describing an output nobody can rebuild either.
+- The full CSS expression now goes in the token's `$description`, the remedy Step 8 already uses for a `clamp()` the `dimension` type cannot represent. Tooling gets a valid gradient token, a human reading the JSON gets the rule. Step 5 carries a worked JSON example, and a check that the CSS token and the JSON token describe the same gradient before delivery.
+- Said what `position` is, which the step never did. It is a number from 0 at the start of the gradient's axis to 1 at the end, so the CSS percentages get converted: `50%` is `0.5`.
+- A gradient is one role, in one place, in both outputs. Its stops are not palette entries: they do not count toward the 5 to 8 colors of Step 1, and they never land on the Step 3 long tail. Nothing said so, and a three-stop gradient on a six-color source could push the count past 8 and send its own stops to the cleanup list - which asks the user to merge a gradient into itself. The Do-not list gained the line, next to the themed-pair rule it rhymes with.
+
 ## [1.3.0] - 2026-09-04
 
 - Added `references/multi-theme.md`, the repo's first reference file, for sources that declare the same design twice - light and dark, a high-contrast mode, a switchable skin. Nothing in the skill handled them, and every rule in it assumes one value per role.
