@@ -21,7 +21,7 @@ If none of the three are present, ask for one. Do not guess a palette or scale f
 
 Work through these six groups. A group that is hard to read is not a reason to skip it - mark it not extracted instead (Step 4).
 
-1. **Palette** - 5 to 8 hex colors, each with a role label (naming rule in Step 2).
+1. **Palette** - the hex colors that carry a structural role, each with a role label (naming rule in Step 2). Typically 5 to 8. That is the range to expect, not a count to hit: a source outside it in either direction is Step 3.
 2. **Typography** - 1 to 2 font families plus the type scale (the distinct font sizes in use, largest to smallest).
 3. **Spacing** - the base unit (commonly 4px or 8px) and the ramp built from it.
 4. **Radii** - up to 3 border-radius values, smallest to largest.
@@ -49,13 +49,36 @@ Use this naming pattern, adapted to what the source actually contains:
 
 A source with only 2 shadow levels gets 2 tokens, not 3 padded ones. If the source's own class or variable names already suggest a role - a class called `.btn-primary` using a specific blue - use that signal for the role label.
 
-## Step 3 - more than 8 colors
+## Step 3 - a palette outside 5 to 8
+
+### More than 8 colors
 
 If the source has more than 8 genuinely distinct colors:
 
 1. Keep the 5-8 that carry a clear structural role: background, text, one or two accents, one or two status colors, border.
 2. List every other color under a `## Long tail` note, with its hex and where it appeared, flagged for cleanup.
 3. Tell the user this points at token-set consolidation, and that the `audit-design-tokens` skill is built for finding and merging near-duplicate colors across a whole codebase.
+
+### Fewer than 5 colors
+
+Some designs are built on three colors and a lot of whitespace. Emit the three. The 5 to 8 in Step 1 is the range a typical source falls in, not a quota the output has to reach, and a palette padded up to it invents every color past the source's own - which Step 4 and the Do-not list forbid in the same words.
+
+Padding is tempting at this end because it does not look like invention. Deriving `--text-secondary` as the text color at 60% opacity, or a `--border` as some light grey mixed between background and text, produces plausible values by a plausible method, and the values still go in the set without the source ever showing them. A derived color is harder to catch than a guessed one for exactly that reason. If the source displays no secondary text color, it does not have one.
+
+Two things keep a small palette honest:
+
+- **One distinct value, one token.** Where the source uses the same hex for two structural roles - a page background and a card surface both `#FFFFFF` - name it for the role it plainly serves and alias the second to it, rather than declaring the same color twice. Two independent tokens claim a distinction the source does not make, and the day one of them moves the design changes in a way the source never showed.
+
+```css
+  --bg-primary: #FFFFFF;
+  --surface: var(--bg-primary);
+```
+
+```json
+"surface": { "$value": "{color.bg-primary}", "$type": "color" }
+```
+
+- **Say the size in the footer.** `palette: 3 colors, the full set the source uses`. Without it a three-token palette reads as an extraction that stopped early, and the next person re-runs the job hunting for what you missed. This is not the Step 4 marker and must never be written as one: not extracted means the source could not be read, and a source with three colors was read completely.
 
 ## Step 4 - never invent a missing value
 
@@ -222,6 +245,7 @@ never invent a second theme the source does not declare.
 - **Conflicting values across multiple screenshots** (two screenshots show a different shade of the "same" primary button): do not average or silently pick one. List both values against their source and ask which is canonical. A conflict is two sources claiming the *same* condition and disagreeing - if the two shots are the light and dark version of one screen, that is two declared conditions and both values are right, so it is Step 9, not this. Asking which of a themed pair is canonical deletes half the design.
 - **Source declares light and dark, a high-contrast mode, or a switchable skin**: see Step 9 and `references/multi-theme.md`. The second set goes in a block keyed to the source's own mechanism, with the same token names, carrying only the tokens that differ.
 - **More than 8 palette colors**: see Step 3.
+- **Fewer than 5 palette colors**: see Step 3. Emit what the source has. The 5 to 8 range is what a typical source yields, not a floor the output has to reach, and a color derived from another one - a secondary text at 60% opacity, a border grey mixed between background and text - is invented by a method that makes it look measured. Where one hex serves two roles, alias the second to the first instead of declaring the color twice, and say the palette's size in the footer so a small set does not read as an incomplete one.
 - **Gradients**: see Step 5. One role, one token, in both outputs. Stops never count toward the Step 1 palette or land on the Step 3 long tail, and the JSON token carries the full CSS expression in `$description`, since its stop array cannot hold the gradient's direction.
 - **A whole group has no usable source data**: see Step 4. The marker is a CSS comment and an empty JSON group with `$description` - never bare text in the `:root` block, never a token `$value`, and never a group quietly left out.
 - **No URL, screenshot, or CSS given**: ask for one of the three. Do not fabricate a plausible-looking palette.
@@ -239,7 +263,7 @@ never invent a second theme the source does not declare.
 - Do not average or guess between conflicting sources.
 - Do not flatten a source's second theme into one set, and do not file a themed pair as near-duplicate colors on the long-tail list - one role under two declared conditions is not two colors competing for one role.
 - Do not split a gradient into its stops - not as separate palette tokens, not as long-tail entries, and not as a JSON token whose direction was dropped on the way in.
-- Do not pad a group to a round number - a third shadow that is not in the source, added just to reach 3, is a fabrication.
+- Do not pad a group to a round number - a third shadow that is not in the source, added just to reach 3, is a fabrication. The same goes for padding up to the bottom of a range: a palette lifted from three colors to five invents two, and derives them from the real ones so they read as measured (Step 3).
 
 ## Reference material
 

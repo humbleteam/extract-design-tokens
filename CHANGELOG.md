@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.5.0] - 2026-09-14
+
+- The palette range only ever had one end. Step 1 asks for "5 to 8 hex colors", Step 3 handles a source with more than 8, and nothing handles a source with fewer than 5 - so a design built on a background, a text color and one accent met a rule requiring five. Followed literally it forces two inventions, which the same skill forbids in Step 4 and twice on the Do-not list. The README was the claim in miniature: its own "how is this different" paragraph names a palette "padded to a tidy number, with values invented where the model could not confirm them" as the failure this skill prevents, while Step 1 required exactly that of a three-color source.
+- Step 3 is now `a palette outside 5 to 8`, with the existing long-tail branch and a new one under it. A source with fewer colors emits fewer, and 5 to 8 is stated as the range to expect rather than a count to reach.
+- Named why padding is harder to catch at this end. Nobody invents a hex at random here; they derive one - a `--text-secondary` at 60% opacity of the text color, a `--border` mixed between background and text. The method is plausible, the output looks measured, and the color is still one the source never displayed.
+- Gave a small palette the two rules it needs. Where one hex serves two structural roles, the second token aliases the first (`--surface: var(--bg-primary)`, `"{color.bg-primary}"` in JSON) rather than declaring the same color twice, because two independent tokens claim a distinction the source does not make and split one decision into two. And the footer states the palette's size, so three tokens read as the whole set rather than as an extraction that stopped early - this is not the Step 4 marker and must not be written as one, since not extracted means the source could not be read.
+- The Do-not line about padding a group to a round number now covers padding up to the bottom of a range, and the edge-case list has the fewer-than-5 entry next to the more-than-8 one.
+- New FAQ answer for the question a reader with a minimal design actually asks, and the existing palette-count answer says the range runs both ways.
+
 ## [1.4.0] - 2026-09-09
 
 - Step 5 asked for a gradient's stops in JSON and stopped there, so the shape it prescribed silently dropped everything a stop array cannot hold. `"$value"` is an ordered list of `{ color, position }` and nothing else: the direction, the gradient function, any repeat or size argument have nowhere to go. A `linear-gradient(135deg, ...)` and a `radial-gradient(...)` over the same three stops emitted byte-identical tokens, and the README bullet gave the reason the rule exists - "a flattened gradient loses information a developer needs to rebuild it" - while describing an output nobody can rebuild either.

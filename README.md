@@ -32,6 +32,7 @@
 - Names every token by role (`--accent`, `--text-secondary`), not by value (`--blue-500`), so the set survives a rebrand.
 - Outputs a ready-to-paste `:root` CSS block and JSON in the W3C Design Tokens Community Group draft shape, every time.
 - Groups any color past the first 5-8 structural ones into a flagged long tail, instead of padding the main palette with near-duplicates.
+- Leaves a small palette small. A design built on three colors comes back as three tokens, not five with two derived from the others - padding is the same fabrication at whichever end of the range it happens.
 - Marks every unconfirmed value as `not extracted - provide a screenshot/URL and re-run` instead of guessing, in a form each file actually keeps: a comment in the CSS, an empty group with a `$description` in the JSON.
 - Keeps the unit the source authored, so a `rem` type scale does not come back frozen as pixels and a `clamp()` value does not get flattened to whatever the fetch viewport happened to be.
 - Re-emits the complete token set on every update, so an edit never silently drops a token you did not ask to change.
@@ -135,7 +136,7 @@ Source: palette, typography, spacing, and radii from https://northwind-analytics
 
 - **Fixed capture order.** Palette, typography, spacing, radii, shadows, motion, every run, so nothing gets skipped by accident.
 - **Role-first naming.** Tokens are named for what they do (`--bg-primary`), not what they equal (`--slate-900`), so a rebrand is a value swap, not a rename across the codebase.
-- **A palette cap with an escape hatch.** The main palette stops at 5-8 colors with a clear role. Everything past that goes into a flagged long tail.
+- **A palette range, not a quota.** The main palette holds the colors carrying a clear structural role, usually 5 to 8. Everything past that goes to a flagged long tail; a source with fewer returns fewer, since a color derived to fill out the range is still a color the source never had.
 - **No invented values, ever.** A group with no usable source data is marked not extracted in both the CSS and the JSON, per group - and never dropped, because a missing group reads as a claim that the design has none. The marker takes the shape each format preserves: a CSS comment, since bare prose in a `:root` block is a parse error that also deletes the declaration after it, and an empty JSON group carrying `$description`, since the draft requires every token's `$value` to match its `$type`.
 - **Two outputs, always.** A `:root` CSS block for immediate use, and JSON in the W3C Design Tokens Community Group draft shape (`$value` / `$type`) for tooling.
 - **A source footer on every answer.** Each group traces back to a URL, a named screenshot file, or a CSS file, and names the root font size whenever the set contains `rem` values.
@@ -160,7 +161,10 @@ It can extract a starting token set from screenshots, with colors, spacing, and 
 CSS custom properties for immediate use, plus JSON in the W3C Design Tokens Community Group draft shape (`$value` and `$type` per token), the format most token-consuming build tools expect.
 
 **How many colors should a design system have?**
-There is no fixed number, but a palette past 8 structural colors usually signals drift, not intentional variety. This skill caps the main palette at 5-8 roles and flags the rest as a long tail for cleanup.
+There is no fixed number, but a palette past 8 structural colors usually signals drift, not intentional variety. This skill expects 5-8 roles and flags the rest as a long tail for cleanup. The range runs both ways: a three-color design comes back as three tokens, because reaching five would mean inventing two.
+
+**What if the site only uses three colors?**
+You get three tokens and a footer line saying that is the whole set. The temptation at this end is to derive the missing roles - a secondary text color at 60% opacity of the text, a border grey mixed between background and text - which produces values that look measured and are not in the source at all. A derived color is harder to spot afterwards than a guessed one, which is why the rule names it. Where one hex genuinely serves two roles, the second token aliases the first (`--surface: var(--bg-primary)`) instead of repeating the value, so the source's one decision stays one decision.
 
 **Can I re-run this after the design changes?**
 Yes. Give it the updated URL, screenshot, or CSS and ask for an update. It re-emits the complete token set with the new values folded in, not just what changed.
