@@ -107,18 +107,31 @@ Below is an example run against a fictional product, Northwind Analytics, from i
 {
   "color": {
     "bg-primary": { "$value": "#0B1220", "$type": "color" },
-    "accent": { "$value": "#4F7CFF", "$type": "color" }
+    "bg-secondary": { "$value": "#141C2E", "$type": "color" },
+    "accent": { "$value": "#4F7CFF", "$type": "color" },
+    "accent-hover": { "$value": "#3A63E0", "$type": "color" },
+    "text-primary": { "$value": "#F4F6FB", "$type": "color" },
+    "text-secondary": { "$value": "#8993A8", "$type": "color" },
+    "success": { "$value": "#34C77B", "$type": "color" },
+    "danger": { "$value": "#E4574C", "$type": "color" }
   },
   "typography": {
     "font-heading": { "$value": "Sora, system-ui, sans-serif", "$type": "fontFamily" },
+    "font-body": { "$value": "Inter, system-ui, sans-serif", "$type": "fontFamily" },
+    "text-sm": { "$value": "0.875rem", "$type": "dimension" },
     "text-base": { "$value": "1rem", "$type": "dimension" },
+    "text-lg": { "$value": "1.375rem", "$type": "dimension" },
     "text-xl-min": { "$value": "2rem", "$type": "dimension", "$description": "floor of clamp(2rem, 4vw, 2.5rem)" },
     "text-xl-max": { "$value": "2.5rem", "$type": "dimension", "$description": "ceiling of clamp(2rem, 4vw, 2.5rem)" }
   },
   "spacing": {
-    "space-2": { "$value": "8px", "$type": "dimension" }
+    "space-1": { "$value": "4px", "$type": "dimension" },
+    "space-2": { "$value": "8px", "$type": "dimension" },
+    "space-3": { "$value": "16px", "$type": "dimension" },
+    "space-4": { "$value": "24px", "$type": "dimension" }
   },
   "radii": {
+    "radius-sm": { "$value": "4px", "$type": "dimension" },
     "radius-md": { "$value": "10px", "$type": "dimension" }
   },
   "shadow": {
@@ -128,8 +141,10 @@ Below is an example run against a fictional product, Northwind Analytics, from i
 }
 ```
 
+The two blocks hold the same set, which is what makes reading one against the other a check. The only name that differs is `--text-xl`: a `clamp()` is one custom property in CSS and a floor and a ceiling in JSON, because the draft's `dimension` type cannot hold the expression (Step 8).
+
 ```
-Source: palette, typography, spacing, and radii from https://northwind-analytics.example (computed styles; type scale authored in rem, root font size 16px, --text-xl fluid); motion not extracted - no transitions or hover states were visible in the fetched CSS.
+Source: palette, typography, spacing, radii, and shadows from https://northwind-analytics.example (computed styles; type scale authored in rem, root font size 16px, --text-xl fluid); motion not extracted - no transitions or hover states were visible in the fetched CSS.
 ```
 
 ## How it works

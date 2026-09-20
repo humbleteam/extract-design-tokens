@@ -205,9 +205,15 @@ Follows the W3C Design Tokens Community Group draft shape: every leaf token is a
 }
 ```
 
+### The two blocks carry the same set
+
+Read them against each other before delivering, the way Step 5 already asks of a gradient's two forms. Every custom property in the CSS block has its token in the JSON, every group in one is a group in the other, and the not-extracted markers stand in both. There is exactly one legal divergence in the whole set: a `clamp()` is one custom property in CSS and a floor plus a ceiling in JSON, because the draft's `dimension` type cannot hold the expression (Step 8). Anything else on one side and not the other is a token that block deletes - the failure Step 7 describes, arriving inside a single answer instead of across two.
+
+The count is the fast version of the check. Custom properties in the CSS block, leaf tokens in the JSON, and the two numbers differ by one for each `clamp()` in the set and by nothing else.
+
 ### Source footer
 
-Close every output with a plain-text line naming where each group came from:
+Close every output with a plain-text line naming where each group came from. Every group the blocks carry is on it, the not-extracted ones included: a group emitted and never traced is the same silence Step 4 refuses, arriving in the footer instead of in the JSON.
 
 ```
 Source: palette + typography from https://example.com (computed styles; type scale authored in rem, root font size 16px); spacing + radii from screenshot (dashboard-2026-07.png, visual estimate, units assumed px); motion not extracted.

@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0] - 2026-09-20
+
+- The repo's only rendered example emitted a JSON block that was not the CSS block. The CSS declared 21 custom properties; the JSON carried 9 leaf tokens covering 8 of them, and nothing anywhere said it was abridged - so the one artifact a reader copies demonstrated the partial answer Step 7 names as the way a token set silently loses everything left out. Thirteen properties were missing from a block presented as the output of the same run: six of the eight palette colors, the second font family, two of the three remaining font sizes, three of the four spacing steps and one of the two radii.
+- The example is complete now, and the two blocks were checked against each other by script rather than by eye: 21 custom properties against 22 leaf tokens, every shared value byte-identical, and exactly one name divergence - `--text-xl`, where a `clamp()` is one property in CSS and a floor plus a ceiling in JSON because the draft's `dimension` type cannot hold the expression.
+- That divergence is why the abridgement could sit there: the skill had no rule that the two blocks carry the same set, only the gradient-specific instance of one in Step 5, so a JSON missing six colors contradicted nothing written down. Step 6 now states the cross-output check and the single exception to it, with the token count as the fast version - the two numbers differ by one per `clamp()` in the set and by nothing else.
+- The example's source footer named palette, typography, spacing, radii and motion, and left shadows out while the same example emitted a shadow token in both blocks. Step 6 asks the footer to name where each group came from, and a group emitted and never traced is the same silence Step 4 refuses, arriving in the footer instead of in the JSON. The footer rule says so now, and the example's footer names all six groups.
+
 ## [1.5.0] - 2026-09-14
 
 - The palette range only ever had one end. Step 1 asks for "5 to 8 hex colors", Step 3 handles a source with more than 8, and nothing handles a source with fewer than 5 - so a design built on a background, a text color and one accent met a rule requiring five. Followed literally it forces two inventions, which the same skill forbids in Step 4 and twice on the Do-not list. The README was the claim in miniature: its own "how is this different" paragraph names a palette "padded to a tidy number, with values invented where the model could not confirm them" as the failure this skill prevents, while Step 1 required exactly that of a three-color source.
