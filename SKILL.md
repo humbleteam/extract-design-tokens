@@ -197,7 +197,17 @@ Follows the W3C Design Tokens Community Group draft shape: every leaf token is a
     "radius-md": { "$value": "8px", "$type": "dimension" }
   },
   "shadow": {
-    "shadow-sm": { "$value": "0 1px 2px rgba(0, 0, 0, 0.06)", "$type": "shadow" }
+    "shadow-sm": {
+      "$type": "shadow",
+      "$value": {
+        "color": "rgba(0, 0, 0, 0.06)",
+        "offsetX": "0px",
+        "offsetY": "1px",
+        "blur": "2px",
+        "spread": "0px"
+      },
+      "$description": "0 1px 2px rgba(0, 0, 0, 0.06)"
+    }
   },
   "motion": {
     "duration-fast": { "$value": "150ms", "$type": "duration" }
@@ -205,11 +215,23 @@ Follows the W3C Design Tokens Community Group draft shape: every leaf token is a
 }
 ```
 
+### Composite types carry an object, not the CSS string
+
+`color`, `dimension`, `fontFamily` and `duration` take the value as authored. `shadow` does not. The draft defines it as a composite of `color`, `offsetX`, `offsetY`, `blur` and `spread`, so `"$value": "0 1px 2px rgba(0, 0, 0, 0.06)"` under `"$type": "shadow"` is a CSS declaration sitting in a slot that does not accept one - the same error as a `clamp()` stored as a `dimension` (Step 8) and a gradient flattened to its stops (Step 5), and the only one of the three this skill used to commit in its own worked example.
+
+Three things the split gets wrong on the way out:
+
+- **Every sub-value is a dimension, so it carries a unit.** A shadow with no spread writes `"spread": "0px"` - never a bare `0`, never the key left out. The draft wants all five, and a unitless number is not a dimension any more than `16` is a font size.
+- **A layered `box-shadow` is one token, not one per layer.** Two comma-separated shadows under one role become an array of two shadow objects under a single `$value`. One role, one token: the rule Step 5 states for a gradient's stops, arriving on the other composite. Splitting them invents a `--shadow-sm-1` and a `--shadow-sm-2` the source never had, and Step 2 forbids the names on top of that.
+- **`$description` still carries the CSS expression, byte for byte.** It is the remedy Step 5 and Step 8 already use, and it is what keeps whatever the five sub-values do not hold - an `inset` keyword among them - readable after the split. Read the two forms against each other the way Step 5 asks of a gradient: same color, same offsets, same blur, and an expression in `$description` that matches the custom property exactly.
+
+The token count is untouched by any of this. A composite is one leaf token with one `$value`, whatever that value contains, so five sub-values are not five tokens and two layers are not two.
+
 ### The two blocks carry the same set
 
 Read them against each other before delivering, the way Step 5 already asks of a gradient's two forms. Every custom property in the CSS block has its token in the JSON, every group in one is a group in the other, and the not-extracted markers stand in both. There is exactly one legal divergence in the whole set: a `clamp()` is one custom property in CSS and a floor plus a ceiling in JSON, because the draft's `dimension` type cannot hold the expression (Step 8). Anything else on one side and not the other is a token that block deletes - the failure Step 7 describes, arriving inside a single answer instead of across two.
 
-The count is the fast version of the check. Custom properties in the CSS block, leaf tokens in the JSON, and the two numbers differ by one for each `clamp()` in the set and by nothing else.
+The count is the fast version of the check. Custom properties in the CSS block, leaf tokens in the JSON, and the two numbers differ by one for each `clamp()` in the set and by nothing else. A composite changes the shape of one side and not the set: `--shadow-sm` is one custom property and one leaf token whether its `$value` is an object, an array of two, or the string it should never have been.
 
 ### Source footer
 
@@ -253,6 +275,7 @@ never invent a second theme the source does not declare.
 - **More than 8 palette colors**: see Step 3.
 - **Fewer than 5 palette colors**: see Step 3. Emit what the source has. The 5 to 8 range is what a typical source yields, not a floor the output has to reach, and a color derived from another one - a secondary text at 60% opacity, a border grey mixed between background and text - is invented by a method that makes it look measured. Where one hex serves two roles, alias the second to the first instead of declaring the color twice, and say the palette's size in the footer so a small set does not read as an incomplete one.
 - **Gradients**: see Step 5. One role, one token, in both outputs. Stops never count toward the Step 1 palette or land on the Step 3 long tail, and the JSON token carries the full CSS expression in `$description`, since its stop array cannot hold the gradient's direction.
+- **Shadows in the JSON block**: `shadow` is a composite type, so its `$value` is an object of `color`, `offsetX`, `offsetY`, `blur` and `spread`, every sub-value carrying a unit with `0px` written out, and a layered `box-shadow` is one token holding an array of them. The CSS expression goes in `$description`, as it does for a gradient and a `clamp()`. See Step 6.
 - **A whole group has no usable source data**: see Step 4. The marker is a CSS comment and an empty JSON group with `$description` - never bare text in the `:root` block, never a token `$value`, and never a group quietly left out.
 - **No URL, screenshot, or CSS given**: ask for one of the three. Do not fabricate a plausible-looking palette.
 - **URL fetch fails or the page is behind auth**: say so, and ask for a screenshot instead.
@@ -268,6 +291,7 @@ never invent a second theme the source does not declare.
 - Do not leave a not-extracted group out of the JSON. Silence reads as "this design has none", which is a claim about the source.
 - Do not average or guess between conflicting sources.
 - Do not flatten a source's second theme into one set, and do not file a themed pair as near-duplicate colors on the long-tail list - one role under two declared conditions is not two colors competing for one role.
+- Do not put a CSS `box-shadow` string in a `shadow` token's `$value`, and do not split a layered one into a token per layer. It is a composite type: the string is the same invalid-by-type error as a `clamp()` stored as a `dimension`, and the split is the gradient's stops failure on the other composite (Step 6).
 - Do not split a gradient into its stops - not as separate palette tokens, not as long-tail entries, and not as a JSON token whose direction was dropped on the way in.
 - Do not pad a group to a round number - a third shadow that is not in the source, added just to reach 3, is a fabrication. The same goes for padding up to the bottom of a range: a palette lifted from three colors to five invents two, and derives them from the real ones so they read as measured (Step 3).
 

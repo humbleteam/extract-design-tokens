@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.7.0] - 2026-09-25
+
+- Both JSON examples emitted a shadow token that the draft does not accept. `shadow` is a composite type - `color`, `offsetX`, `offsetY`, `blur`, `spread` - and the repo wrote the CSS declaration into `$value` as a string: `{ "$value": "0 1px 2px rgba(4, 8, 20, 0.24)", "$type": "shadow" }`. It is the same invalid-by-type error as a `clamp()` stored as a `dimension`, which Step 8 handles, and as a gradient flattened to its stops, which Step 5 handles. Shadow was the third instance of the one pattern, the only one written down nowhere, and the only one the skill committed in its own worked example.
+- Step 6 now states it, next to the block shape that was getting it wrong: the composite object, the CSS expression kept in `$description` byte for byte the way Step 5 and Step 8 already keep theirs, and the two forms read against each other before delivering.
+- Two things the split gets wrong on the way out are stated with it. Every sub-value is a dimension and carries a unit, so a shadow with no spread writes `"spread": "0px"` rather than a bare `0` or a missing key. And a layered `box-shadow` is one token holding an array of shadow objects, not a token per layer - one role, one token, the rule Step 5 states for a gradient's stops arriving on the other composite, with a `--shadow-sm-1` and `--shadow-sm-2` that Step 2 forbids on top of it.
+- Said explicitly that none of this moves the token count, because the obvious misreading is that five sub-values are five tokens. A composite is one leaf token with one `$value` whatever that value contains, so the Step 6 cross-output check still reads one custom property against one leaf token, and the README example still reconciles at 21 properties against 22 leaf tokens with `--text-xl` the only name that differs.
+- Both examples carry the composite form now, and the README says in one line that a composite changes the shape of one side and not the set. New edge case and a new Do-not entry cover the string and the per-layer split.
+
 ## [1.6.0] - 2026-09-20
 
 - The repo's only rendered example emitted a JSON block that was not the CSS block. The CSS declared 21 custom properties; the JSON carried 9 leaf tokens covering 8 of them, and nothing anywhere said it was abridged - so the one artifact a reader copies demonstrated the partial answer Step 7 names as the way a token set silently loses everything left out. Thirteen properties were missing from a block presented as the output of the same run: six of the eight palette colors, the second font family, two of the three remaining font sizes, three of the four spacing steps and one of the two radii.

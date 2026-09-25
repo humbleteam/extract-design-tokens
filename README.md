@@ -135,13 +135,25 @@ Below is an example run against a fictional product, Northwind Analytics, from i
     "radius-md": { "$value": "10px", "$type": "dimension" }
   },
   "shadow": {
-    "shadow-sm": { "$value": "0 1px 2px rgba(4, 8, 20, 0.24)", "$type": "shadow" }
+    "shadow-sm": {
+      "$type": "shadow",
+      "$value": {
+        "color": "rgba(4, 8, 20, 0.24)",
+        "offsetX": "0px",
+        "offsetY": "1px",
+        "blur": "2px",
+        "spread": "0px"
+      },
+      "$description": "0 1px 2px rgba(4, 8, 20, 0.24)"
+    }
   },
   "motion": { "$description": "not extracted - provide a screenshot/URL and re-run" }
 }
 ```
 
 The two blocks hold the same set, which is what makes reading one against the other a check. The only name that differs is `--text-xl`: a `clamp()` is one custom property in CSS and a floor and a ceiling in JSON, because the draft's `dimension` type cannot hold the expression (Step 8).
+
+`--shadow-sm` shows the other half of that. Its shape differs between the blocks and its place in the set does not: `shadow` is a composite type, so the JSON carries the offsets, blur and spread as named sub-values with the CSS expression in `$description`, and it is still one custom property against one leaf token.
 
 ```
 Source: palette, typography, spacing, radii, and shadows from https://northwind-analytics.example (computed styles; type scale authored in rem, root font size 16px, --text-xl fluid); motion not extracted - no transitions or hover states were visible in the fetched CSS.
