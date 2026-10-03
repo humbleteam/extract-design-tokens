@@ -118,31 +118,31 @@ Below is an example run against a fictional product, Northwind Analytics, from i
   "typography": {
     "font-heading": { "$value": "Sora, system-ui, sans-serif", "$type": "fontFamily" },
     "font-body": { "$value": "Inter, system-ui, sans-serif", "$type": "fontFamily" },
-    "text-sm": { "$value": "0.875rem", "$type": "dimension" },
-    "text-base": { "$value": "1rem", "$type": "dimension" },
-    "text-lg": { "$value": "1.375rem", "$type": "dimension" },
-    "text-xl-min": { "$value": "2rem", "$type": "dimension", "$description": "floor of clamp(2rem, 4vw, 2.5rem)" },
-    "text-xl-max": { "$value": "2.5rem", "$type": "dimension", "$description": "ceiling of clamp(2rem, 4vw, 2.5rem)" }
+    "text-sm": { "$value": { "value": 0.875, "unit": "rem" }, "$type": "dimension" },
+    "text-base": { "$value": { "value": 1, "unit": "rem" }, "$type": "dimension" },
+    "text-lg": { "$value": { "value": 1.375, "unit": "rem" }, "$type": "dimension" },
+    "text-xl-min": { "$value": { "value": 2, "unit": "rem" }, "$type": "dimension", "$description": "floor of clamp(2rem, 4vw, 2.5rem)" },
+    "text-xl-max": { "$value": { "value": 2.5, "unit": "rem" }, "$type": "dimension", "$description": "ceiling of clamp(2rem, 4vw, 2.5rem)" }
   },
   "spacing": {
-    "space-1": { "$value": "4px", "$type": "dimension" },
-    "space-2": { "$value": "8px", "$type": "dimension" },
-    "space-3": { "$value": "16px", "$type": "dimension" },
-    "space-4": { "$value": "24px", "$type": "dimension" }
+    "space-1": { "$value": { "value": 4, "unit": "px" }, "$type": "dimension" },
+    "space-2": { "$value": { "value": 8, "unit": "px" }, "$type": "dimension" },
+    "space-3": { "$value": { "value": 16, "unit": "px" }, "$type": "dimension" },
+    "space-4": { "$value": { "value": 24, "unit": "px" }, "$type": "dimension" }
   },
   "radii": {
-    "radius-sm": { "$value": "4px", "$type": "dimension" },
-    "radius-md": { "$value": "10px", "$type": "dimension" }
+    "radius-sm": { "$value": { "value": 4, "unit": "px" }, "$type": "dimension" },
+    "radius-md": { "$value": { "value": 10, "unit": "px" }, "$type": "dimension" }
   },
   "shadow": {
     "shadow-sm": {
       "$type": "shadow",
       "$value": {
         "color": "rgba(4, 8, 20, 0.24)",
-        "offsetX": "0px",
-        "offsetY": "1px",
-        "blur": "2px",
-        "spread": "0px"
+        "offsetX": { "value": 0, "unit": "px" },
+        "offsetY": { "value": 1, "unit": "px" },
+        "blur": { "value": 2, "unit": "px" },
+        "spread": { "value": 0, "unit": "px" }
       },
       "$description": "0 1px 2px rgba(4, 8, 20, 0.24)"
     }
@@ -151,9 +151,11 @@ Below is an example run against a fictional product, Northwind Analytics, from i
 }
 ```
 
-The two blocks hold the same set, which is what makes reading one against the other a check. The only name that differs is `--text-xl`: a `clamp()` is one custom property in CSS and a floor and a ceiling in JSON, because the draft's `dimension` type cannot hold the expression (Step 8).
+The two blocks hold the same set, which is what makes reading one against the other a check. The only name that differs is `--text-xl`: a `clamp()` is one custom property in CSS and a floor and a ceiling in JSON, because a `dimension` is one number with one unit and cannot hold the expression (Step 8).
 
-`--shadow-sm` shows the other half of that. Its shape differs between the blocks and its place in the set does not: `shadow` is a composite type, so the JSON carries the offsets, blur and spread as named sub-values with the CSS expression in `$description`, and it is still one custom property against one leaf token.
+`--shadow-sm` shows the other half of that. Its shape differs between the blocks and its place in the set does not: `shadow` is a composite type, so the JSON carries the offsets, blur and spread as named sub-values with the CSS expression in `$description`, and it is still one custom property against one leaf token. Each of those four is itself a dimension, which is why they carry the same `value` and `unit` object the spacing tokens do rather than a `"0px"` string.
+
+The JSON above is shaped to [version 2025.10](https://www.designtokens.org/TR/2025.10/format/) of the format, with one gap named rather than hidden: its `color` tokens still carry a bare hex, and 2025.10 wants a color `$value` to be an object with a `colorSpace` and `components`, keeping `hex` as an optional fallback. That is the next correction due here.
 
 ```
 Source: palette, typography, spacing, radii, and shadows from https://northwind-analytics.example (computed styles; type scale authored in rem, root font size 16px, --text-xl fluid); motion not extracted - no transitions or hover states were visible in the fetched CSS.

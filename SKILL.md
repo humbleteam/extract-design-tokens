@@ -178,7 +178,9 @@ A single `:root { }` block, grouped by section with a comment header per group, 
 
 ### JSON block
 
-Follows the W3C Design Tokens Community Group draft shape: every leaf token is an object with `$value` and `$type`, grouped by the same sections as the CSS.
+Follows the W3C Design Tokens Community Group format, [version 2025.10](https://www.designtokens.org/TR/2025.10/format/): every leaf token is an object with `$value` and `$type`, grouped by the same sections as the CSS, and each `$value` in the shape that version gives its type.
+
+Known gap in the block below: the `color` tokens still carry a bare hex string. 2025.10 defines a color `$value` as an object with a `colorSpace` and `components`, with `hex` as an optional fallback, so a hex on its own is the same invalid-by-type error the dimensions carried until this version of the skill. It is named here rather than quietly shipped, and it is the next thing to fix.
 
 ```json
 {
@@ -188,40 +190,40 @@ Follows the W3C Design Tokens Community Group draft shape: every leaf token is a
   },
   "typography": {
     "font-heading": { "$value": "Inter, system-ui, sans-serif", "$type": "fontFamily" },
-    "text-base": { "$value": "1rem", "$type": "dimension" }
+    "text-base": { "$value": { "value": 1, "unit": "rem" }, "$type": "dimension" }
   },
   "spacing": {
-    "space-2": { "$value": "8px", "$type": "dimension" }
+    "space-2": { "$value": { "value": 8, "unit": "px" }, "$type": "dimension" }
   },
   "radii": {
-    "radius-md": { "$value": "8px", "$type": "dimension" }
+    "radius-md": { "$value": { "value": 8, "unit": "px" }, "$type": "dimension" }
   },
   "shadow": {
     "shadow-sm": {
       "$type": "shadow",
       "$value": {
         "color": "rgba(0, 0, 0, 0.06)",
-        "offsetX": "0px",
-        "offsetY": "1px",
-        "blur": "2px",
-        "spread": "0px"
+        "offsetX": { "value": 0, "unit": "px" },
+        "offsetY": { "value": 1, "unit": "px" },
+        "blur": { "value": 2, "unit": "px" },
+        "spread": { "value": 0, "unit": "px" }
       },
       "$description": "0 1px 2px rgba(0, 0, 0, 0.06)"
     }
   },
   "motion": {
-    "duration-fast": { "$value": "150ms", "$type": "duration" }
+    "duration-fast": { "$value": { "value": 150, "unit": "ms" }, "$type": "duration" }
   }
 }
 ```
 
 ### Composite types carry an object, not the CSS string
 
-`color`, `dimension`, `fontFamily` and `duration` take the value as authored. `shadow` does not. The draft defines it as a composite of `color`, `offsetX`, `offsetY`, `blur` and `spread`, so `"$value": "0 1px 2px rgba(0, 0, 0, 0.06)"` under `"$type": "shadow"` is a CSS declaration sitting in a slot that does not accept one - the same error as a `clamp()` stored as a `dimension` (Step 8) and a gradient flattened to its stops (Step 5), and the only one of the three this skill used to commit in its own worked example.
+A `$value` has to follow the rules for its `$type`, and in [Design Tokens Format Module 2025.10](https://www.designtokens.org/TR/2025.10/format/), the Final Community Group Report of 28 October 2025, most of the types this skill emits want an object rather than the CSS value as authored. `fontFamily` takes the string. `dimension` is a numeric `value` with a `unit` of `"px"` or `"rem"`, `duration` is a numeric `value` with a `unit` of `"ms"` or `"s"`, and `shadow` is a composite of `color`, `offsetX`, `offsetY`, `blur` and `spread` whose four offsets are each a dimension - so `"$value": "8px"` under `dimension`, `"$value": "150ms"` under `duration` and `"$value": "0 1px 2px rgba(0, 0, 0, 0.06)"` under `shadow` are all one error: a CSS value sitting in a slot that does not accept one. It is the same error as a `clamp()` stored as a `dimension` (Step 8) and a gradient flattened to its stops (Step 5), and naming the version is the point - an unversioned claim about a moving document is what let three of these stand in this skill's own worked example.
 
 Three things the split gets wrong on the way out:
 
-- **Every sub-value is a dimension, so it carries a unit.** A shadow with no spread writes `"spread": "0px"` - never a bare `0`, never the key left out. The draft wants all five, and a unitless number is not a dimension any more than `16` is a font size.
+- **Every sub-value is a dimension, so it is a dimension object.** A shadow with no spread writes `"spread": { "value": 0, "unit": "px" }` - never a bare `0`, never `"0px"`, never the key left out. The spec wants all five, and the string form is the outer error arriving one level down: a unit has to be there, and in its own key rather than glued to the number.
 - **A layered `box-shadow` is one token, not one per layer.** Two comma-separated shadows under one role become an array of two shadow objects under a single `$value`. One role, one token: the rule Step 5 states for a gradient's stops, arriving on the other composite. Splitting them invents a `--shadow-sm-1` and a `--shadow-sm-2` the source never had, and Step 2 forbids the names on top of that.
 - **`$description` still carries the CSS expression, byte for byte.** It is the remedy Step 5 and Step 8 already use, and it is what keeps whatever the five sub-values do not hold - an `inset` keyword among them - readable after the split. Read the two forms against each other the way Step 5 asks of a gradient: same color, same offsets, same blur, and an expression in `$description` that matches the custom property exactly.
 
@@ -251,7 +253,7 @@ A computed value is a measurement taken under one condition: one root font size,
 
 - **Relative lengths stay relative.** When the winning declaration is authored in `rem`, `em`, `ch`, `%`, `vw` or `vh`, the token carries that unit. A type scale authored in `rem` and recorded as `--text-base: 16px` hard-codes the browser default and drops the reader's own font-size setting - the thing the original respected (WCAG 2.2, SC 1.4.4 Resize text).
 - **Fluid values stay whole.** `clamp(1rem, 2.5vw, 2rem)` is a rule, not a number. Store the expression: `--text-xl: clamp(1rem, 2.5vw, 2rem)`. Reading it at whatever viewport you fetched at produces a value no other viewport agrees with, and a second run at a different width silently "corrects" the token.
-- **Give fluid values a valid JSON form.** The W3C draft's `dimension` type is a single number with a `px` or `rem` unit, so a `clamp()` expression is not a valid dimension token. Emit the floor and ceiling as two dimension tokens (`text-xl-min`, `text-xl-max`) and put the full expression in the token's `$description` - tooling gets something valid, a human still sees the real rule.
+- **Give fluid values a valid JSON form.** A `dimension` is one numeric `value` with one `unit`, so a `clamp()` expression is not a valid dimension token however it is written. Emit the floor and ceiling as two dimension tokens (`text-xl-min`, `text-xl-max`), each carrying its own `{ "value": ..., "unit": ... }`, and put the full expression in the token's `$description` - tooling gets something valid, a human still sees the real rule.
 - **Name the root font size** in the source footer whenever the set contains `rem` values. A source using the `font-size: 62.5%` trick makes `1rem` equal 10px, and rem tokens read against the wrong root are wrong everywhere at once.
 - **Pixels are right when the source authored pixels.** Hairline borders, radii and shadow offsets are often fixed on purpose. The rule is to keep what the source said, not to convert everything to `rem`.
 
@@ -291,6 +293,7 @@ never invent a second theme the source does not declare.
 - Do not leave a not-extracted group out of the JSON. Silence reads as "this design has none", which is a claim about the source.
 - Do not average or guess between conflicting sources.
 - Do not flatten a source's second theme into one set, and do not file a themed pair as near-duplicate colors on the long-tail list - one role under two declared conditions is not two colors competing for one role.
+- Do not write a `dimension` or a `duration` `$value` as a CSS string. `"8px"` and `"150ms"` are values glued to their units; 2025.10 wants the number and the unit in their own keys, and that holds for a shadow's four offsets too, since each of them is a dimension.
 - Do not put a CSS `box-shadow` string in a `shadow` token's `$value`, and do not split a layered one into a token per layer. It is a composite type: the string is the same invalid-by-type error as a `clamp()` stored as a `dimension`, and the split is the gradient's stops failure on the other composite (Step 6).
 - Do not split a gradient into its stops - not as separate palette tokens, not as long-tail entries, and not as a JSON token whose direction was dropped on the way in.
 - Do not pad a group to a round number - a third shadow that is not in the source, added just to reach 3, is a fabrication. The same goes for padding up to the bottom of a range: a palette lifted from three colors to five invents two, and derives them from the real ones so they read as measured (Step 3).

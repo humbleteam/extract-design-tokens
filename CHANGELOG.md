@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.8.0] - 2026-10-03
+
+- Every `dimension` and `duration` token the skill emits carried its value as a CSS string: `"1rem"`, `"8px"`, `"150ms"`. [Design Tokens Format Module 2025.10](https://www.designtokens.org/TR/2025.10/format/), the Final Community Group Report of 28 October 2025, defines a `dimension` `$value` as an object holding a numeric `value` and a `unit` of `"px"` or `"rem"`, and a `duration` `$value` the same way with `"ms"` or `"s"`. So the string form was the invalid-by-type error this repo already named three times, sitting in most of its own output.
+- The line that licensed it said `color`, `dimension`, `fontFamily` and `duration` take the value as authored, which is true of `fontFamily` alone. Step 6 now states the rule against a named version instead: a `$value` follows the rules for its `$type`, and the version is cited, because an unversioned claim about a moving document is what let three instances of one error stand in a worked example.
+- Both worked examples carry the object form, and so do the four offsets inside `shadow`. The 1.7.0 fix moved shadow off a CSS string and wrote its sub-values as `"spread": "0px"`, which is the same error one level down - each of the four is a dimension, so each is a dimension object. Step 8's `clamp()` remedy is unchanged in substance: the floor and the ceiling are still two tokens with the expression in `$description`, each now carrying its own `value` and `unit`.
+- Nothing about the token count moved, since an object `$value` is still one leaf token. The README example reconciles at 21 custom properties against 22 leaf tokens, with `--text-xl` the only name that differs, and every JSON block parses. Checked by script, not by eye.
+- New Do-not entry for the string form on both primitives, and on a shadow's offsets with them.
+- Named, not fixed: the `color` tokens in both examples still carry a bare hex. 2025.10 defines a color `$value` as an object with a `colorSpace` and `components`, keeping `hex` as an optional fallback, so a hex on its own is the same error again. Both examples and the README say so where they show it, rather than shipping it quietly. It is the next correction due here, and it reaches further than the dimensions did.
+
 ## [1.7.0] - 2026-09-25
 
 - Both JSON examples emitted a shadow token that the draft does not accept. `shadow` is a composite type - `color`, `offsetX`, `offsetY`, `blur`, `spread` - and the repo wrote the CSS declaration into `$value` as a string: `{ "$value": "0 1px 2px rgba(4, 8, 20, 0.24)", "$type": "shadow" }`. It is the same invalid-by-type error as a `clamp()` stored as a `dimension`, which Step 8 handles, and as a gradient flattened to its stops, which Step 5 handles. Shadow was the third instance of the one pattern, the only one written down nowhere, and the only one the skill committed in its own worked example.
