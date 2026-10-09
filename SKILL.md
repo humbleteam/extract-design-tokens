@@ -112,7 +112,7 @@ If a background or fill is a gradient, do not collapse it to one flat hex. Store
 
 A gradient is one role, not one role per stop. Its stops are not palette entries: they do not count toward the 5 to 8 colors of Step 1, and they never appear on the Step 3 long tail. Three stops of one gradient are one thing the source shows in one place, not three colors competing for a role, and listing them for cleanup asks the user to merge a gradient into itself. The one token sits with the palette in both outputs: under the `/* Palette */` header in CSS, in the `color` group in JSON.
 
-In JSON, use `"$type": "gradient"` with `"$value"` as an ordered array of stops, each `{ "color": ..., "position": ... }` with the position as a number from 0 at the start of the gradient's axis to 1 at the end. Convert the CSS percentages: `50%` is `0.5`.
+In JSON, use `"$type": "gradient"` with `"$value"` as an ordered array of stops, each `{ "color": ..., "position": ... }` with the position as a number from 0 at the start of the gradient's axis to 1 at the end. Convert the CSS percentages: `50%` is `0.5`. A stop's `color` is a color value, so it is the object Step 6 describes rather than the hex string - the type's rules reach inside the stop list.
 
 That array carries the stops and nothing else, so everything outside the stop list has nowhere to go - the direction (`135deg`), the gradient function itself, any repeat or size argument. Dropped, a `linear-gradient(135deg, ...)` and a `radial-gradient(...)` over the same stops emit the same token, and nobody reading the JSON can rebuild either one. Put the full CSS expression in the token's `$description`, the same remedy Step 8 uses for a `clamp()` the `dimension` type cannot hold: tooling gets a valid gradient, a human still sees the real rule.
 
@@ -120,9 +120,9 @@ That array carries the stops and nothing else, so everything outside the stop li
 "accent-gradient": {
   "$type": "gradient",
   "$value": [
-    { "color": "#6366F1", "position": 0 },
-    { "color": "#8B5CF6", "position": 0.5 },
-    { "color": "#EC4899", "position": 1 }
+    { "color": { "colorSpace": "srgb", "components": [0.3882, 0.4, 0.9451], "hex": "#6366F1" }, "position": 0 },
+    { "color": { "colorSpace": "srgb", "components": [0.5451, 0.3608, 0.9647], "hex": "#8B5CF6" }, "position": 0.5 },
+    { "color": { "colorSpace": "srgb", "components": [0.9255, 0.2824, 0.6], "hex": "#EC4899" }, "position": 1 }
   ],
   "$description": "linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #EC4899 100%)"
 }
@@ -180,13 +180,11 @@ A single `:root { }` block, grouped by section with a comment header per group, 
 
 Follows the W3C Design Tokens Community Group format, [version 2025.10](https://www.designtokens.org/TR/2025.10/format/): every leaf token is an object with `$value` and `$type`, grouped by the same sections as the CSS, and each `$value` in the shape that version gives its type.
 
-Known gap in the block below: the `color` tokens still carry a bare hex string. 2025.10 defines a color `$value` as an object with a `colorSpace` and `components`, with `hex` as an optional fallback, so a hex on its own is the same invalid-by-type error the dimensions carried until this version of the skill. It is named here rather than quietly shipped, and it is the next thing to fix.
-
 ```json
 {
   "color": {
-    "bg-primary": { "$value": "#0F172A", "$type": "color" },
-    "accent": { "$value": "#6366F1", "$type": "color" }
+    "bg-primary": { "$value": { "colorSpace": "srgb", "components": [0.0588, 0.0902, 0.1647], "hex": "#0F172A" }, "$type": "color" },
+    "accent": { "$value": { "colorSpace": "srgb", "components": [0.3882, 0.4, 0.9451], "hex": "#6366F1" }, "$type": "color" }
   },
   "typography": {
     "font-heading": { "$value": "Inter, system-ui, sans-serif", "$type": "fontFamily" },
@@ -202,7 +200,7 @@ Known gap in the block below: the `color` tokens still carry a bare hex string. 
     "shadow-sm": {
       "$type": "shadow",
       "$value": {
-        "color": "rgba(0, 0, 0, 0.06)",
+        "color": { "colorSpace": "srgb", "components": [0, 0, 0], "alpha": 0.06 },
         "offsetX": { "value": 0, "unit": "px" },
         "offsetY": { "value": 1, "unit": "px" },
         "blur": { "value": 2, "unit": "px" },
@@ -217,9 +215,27 @@ Known gap in the block below: the `color` tokens still carry a bare hex string. 
 }
 ```
 
+### A color is an object, not a hex string
+
+A `color` `$value` is an object for the same reason a dimension is: the value has to follow the rules for its `$type`. In 2025.10 the `color` type defers to the [Color module](https://www.designtokens.org/TR/2025.10/color/), which requires two properties - a `colorSpace` naming the space, and a `components` array whose entries are each a number or the `none` keyword - and allows two more: an `alpha` between 0 and 1, assumed to be 1 wherever it is left out, and a `hex` fallback that has to be written in six-digit CSS hex notation. So `"$value": "#0F172A"` is the same invalid-by-type error as `"8px"` under a `dimension`.
+
+```json
+"bg-primary": {
+  "$type": "color",
+  "$value": { "colorSpace": "srgb", "components": [0.0588, 0.0902, 0.1647], "hex": "#0F172A" }
+}
+```
+
+- **The components are the channels, not the hex.** Under `srgb` each of the three is a number from 0 to 1, so an 8-bit channel is its value over 255. Write four decimal places: adjacent 8-bit values sit 1/255 apart, about 0.0039, so a rounding error of 0.00005 cannot reach the neighbouring value and the hex is recoverable from the components exactly. `0.058823529411764705` claims a precision the source never had, and two decimals lose the channel.
+- **Keep the `hex` on an opaque color and drop it on a translucent one.** It is optional either way, and on an opaque color it earns its place: it is the value the CSS block carries, which makes it the cross-check for the components sitting next to it. On a color with an `alpha` below 1 it is a fallback that renders wrong - six digits have nowhere to put the alpha, so a consumer falling back on it paints a 6% black shadow solid black. The authored expression goes in `$description` instead, the remedy Steps 5 and 8 already use.
+- **An authored color space stays that color space.** `oklch`, `lab` and `display-p3` are all on the module's list, and converting a wide-gamut color into `srgb` components clips it to what sRGB can show - Step 8's principle arriving on color instead of on length. Take the space from the winning declaration and give its components in the order and ranges the module defines for that space; `srgb` is the right answer only where `srgb` is what the source authored.
+- **A color read off a screenshot is still an estimate.** Four decimals convert a hex, they do not measure one, so a visually read palette does not become exact by being written in components. The footer still says it was a visual read (Step 1).
+
+Every color value in the output follows this, not only the ones in the `color` group: a gradient stop's `color` (Step 5) and a `shadow`'s `color` sub-value are both a color value or a reference to a color token, which means this object or a `{color.accent}` alias. None of it moves the count - a color object is one leaf token with one `$value`, the same way a composite is.
+
 ### Composite types carry an object, not the CSS string
 
-A `$value` has to follow the rules for its `$type`, and in [Design Tokens Format Module 2025.10](https://www.designtokens.org/TR/2025.10/format/), the Final Community Group Report of 28 October 2025, most of the types this skill emits want an object rather than the CSS value as authored. `fontFamily` takes the string. `dimension` is a numeric `value` with a `unit` of `"px"` or `"rem"`, `duration` is a numeric `value` with a `unit` of `"ms"` or `"s"`, and `shadow` is a composite of `color`, `offsetX`, `offsetY`, `blur` and `spread` whose four offsets are each a dimension - so `"$value": "8px"` under `dimension`, `"$value": "150ms"` under `duration` and `"$value": "0 1px 2px rgba(0, 0, 0, 0.06)"` under `shadow` are all one error: a CSS value sitting in a slot that does not accept one. It is the same error as a `clamp()` stored as a `dimension` (Step 8) and a gradient flattened to its stops (Step 5), and naming the version is the point - an unversioned claim about a moving document is what let three of these stand in this skill's own worked example.
+A `$value` has to follow the rules for its `$type`, and in [Design Tokens Format Module 2025.10](https://www.designtokens.org/TR/2025.10/format/), the Final Community Group Report of 28 October 2025, most of the types this skill emits want an object rather than the CSS value as authored - `color` among them, per the subsection above. `fontFamily` takes the string. `dimension` is a numeric `value` with a `unit` of `"px"` or `"rem"`, `duration` is a numeric `value` with a `unit` of `"ms"` or `"s"`, and `shadow` is a composite of `color`, `offsetX`, `offsetY`, `blur` and `spread` whose four offsets are each a dimension - so `"$value": "8px"` under `dimension`, `"$value": "150ms"` under `duration` and `"$value": "0 1px 2px rgba(0, 0, 0, 0.06)"` under `shadow` are all one error: a CSS value sitting in a slot that does not accept one. It is the same error as a `clamp()` stored as a `dimension` (Step 8) and a gradient flattened to its stops (Step 5), and naming the version is the point - an unversioned claim about a moving document is what let three of these stand in this skill's own worked example.
 
 Three things the split gets wrong on the way out:
 
@@ -233,7 +249,7 @@ The token count is untouched by any of this. A composite is one leaf token with 
 
 Read them against each other before delivering, the way Step 5 already asks of a gradient's two forms. Every custom property in the CSS block has its token in the JSON, every group in one is a group in the other, and the not-extracted markers stand in both. There is exactly one legal divergence in the whole set: a `clamp()` is one custom property in CSS and a floor plus a ceiling in JSON, because the draft's `dimension` type cannot hold the expression (Step 8). Anything else on one side and not the other is a token that block deletes - the failure Step 7 describes, arriving inside a single answer instead of across two.
 
-The count is the fast version of the check. Custom properties in the CSS block, leaf tokens in the JSON, and the two numbers differ by one for each `clamp()` in the set and by nothing else. A composite changes the shape of one side and not the set: `--shadow-sm` is one custom property and one leaf token whether its `$value` is an object, an array of two, or the string it should never have been.
+The count is the fast version of the check. Custom properties in the CSS block, leaf tokens in the JSON, and the two numbers differ by one for each `clamp()` in the set and by nothing else. A composite changes the shape of one side and not the set: `--shadow-sm` is one custom property and one leaf token whether its `$value` is an object, an array of two, or the string it should never have been. A color object does the same - `--bg-primary` is one property against one token whether the JSON holds a hex string or the `colorSpace` and `components` that replaced it.
 
 ### Source footer
 
@@ -276,8 +292,9 @@ never invent a second theme the source does not declare.
 - **Source declares light and dark, a high-contrast mode, or a switchable skin**: see Step 9 and `references/multi-theme.md`. The second set goes in a block keyed to the source's own mechanism, with the same token names, carrying only the tokens that differ.
 - **More than 8 palette colors**: see Step 3.
 - **Fewer than 5 palette colors**: see Step 3. Emit what the source has. The 5 to 8 range is what a typical source yields, not a floor the output has to reach, and a color derived from another one - a secondary text at 60% opacity, a border grey mixed between background and text - is invented by a method that makes it look measured. Where one hex serves two roles, alias the second to the first instead of declaring the color twice, and say the palette's size in the footer so a small set does not read as an incomplete one.
-- **Gradients**: see Step 5. One role, one token, in both outputs. Stops never count toward the Step 1 palette or land on the Step 3 long tail, and the JSON token carries the full CSS expression in `$description`, since its stop array cannot hold the gradient's direction.
-- **Shadows in the JSON block**: `shadow` is a composite type, so its `$value` is an object of `color`, `offsetX`, `offsetY`, `blur` and `spread`, every sub-value carrying a unit with `0px` written out, and a layered `box-shadow` is one token holding an array of them. The CSS expression goes in `$description`, as it does for a gradient and a `clamp()`. See Step 6.
+- **Gradients**: see Step 5. One role, one token, in both outputs. Stops never count toward the Step 1 palette or land on the Step 3 long tail, and the JSON token carries the full CSS expression in `$description`, since its stop array cannot hold the gradient's direction. Each stop's `color` is a color value, so it carries the object form, not the hex.
+- **Colors in the JSON block**: a `color` `$value` is an object with a `colorSpace` and a `components` array, an `alpha` only where the source color has one, and the authored hex kept as the six-digit `hex` fallback on an opaque color and left off a translucent one. The same shape applies wherever a color value appears - a gradient's stops, a shadow's `color`. See Step 6.
+- **Shadows in the JSON block**: `shadow` is a composite type, so its `$value` is an object of `color`, `offsetX`, `offsetY`, `blur` and `spread`, every sub-value carrying a unit with `0px` written out, its `color` carrying the color object, and a layered `box-shadow` is one token holding an array of them. The CSS expression goes in `$description`, as it does for a gradient and a `clamp()`. See Step 6.
 - **A whole group has no usable source data**: see Step 4. The marker is a CSS comment and an empty JSON group with `$description` - never bare text in the `:root` block, never a token `$value`, and never a group quietly left out.
 - **No URL, screenshot, or CSS given**: ask for one of the three. Do not fabricate a plausible-looking palette.
 - **URL fetch fails or the page is behind auth**: say so, and ask for a screenshot instead.
@@ -293,6 +310,8 @@ never invent a second theme the source does not declare.
 - Do not leave a not-extracted group out of the JSON. Silence reads as "this design has none", which is a claim about the source.
 - Do not average or guess between conflicting sources.
 - Do not flatten a source's second theme into one set, and do not file a themed pair as near-duplicate colors on the long-tail list - one role under two declared conditions is not two colors competing for one role.
+- Do not write a `color` `$value` as a hex string, and do not keep a `hex` fallback on a color whose `alpha` is below 1. The six-digit form cannot carry the alpha, so the fallback renders a translucent color opaque - the CSS expression goes in `$description` instead (Step 6).
+- Do not convert a color the source authored in `oklch`, `lab` or `display-p3` into `srgb` components. That clips it to the sRGB gamut, which is the color version of storing a computed pixel in place of an authored `rem` (Step 8).
 - Do not write a `dimension` or a `duration` `$value` as a CSS string. `"8px"` and `"150ms"` are values glued to their units; 2025.10 wants the number and the unit in their own keys, and that holds for a shadow's four offsets too, since each of them is a dimension.
 - Do not put a CSS `box-shadow` string in a `shadow` token's `$value`, and do not split a layered one into a token per layer. It is a composite type: the string is the same invalid-by-type error as a `clamp()` stored as a `dimension`, and the split is the gradient's stops failure on the other composite (Step 6).
 - Do not split a gradient into its stops - not as separate palette tokens, not as long-tail entries, and not as a JSON token whose direction was dropped on the way in.

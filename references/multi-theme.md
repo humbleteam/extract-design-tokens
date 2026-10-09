@@ -65,7 +65,7 @@ the role does not change when the theme does.
 
 ## JSON shape
 
-The W3C draft gives a token one `$value`, so a themed set cannot be one flat group. Emit the base
+The W3C draft gives a token one `$value`, so a themed set cannot be one flat group. Each of those values is a color object, per `SKILL.md` Step 6 - the theme changes which color the role holds, not the shape it is written in. Emit the base
 set, then a sibling group per additional theme holding only the tokens that differ, and say in the
 group's `$description` what condition it applies under and that it is an override rather than a
 complete set. The overriding group repeats the base token names exactly.
@@ -73,13 +73,13 @@ complete set. The overriding group repeats the base token names exactly.
 ```json
 {
   "color": {
-    "bg-primary": { "$value": "#FFFFFF", "$type": "color" },
-    "accent": { "$value": "#4F46E5", "$type": "color" }
+    "bg-primary": { "$value": { "colorSpace": "srgb", "components": [1, 1, 1], "hex": "#FFFFFF" }, "$type": "color" },
+    "accent": { "$value": { "colorSpace": "srgb", "components": [0.3098, 0.2745, 0.898], "hex": "#4F46E5" }, "$type": "color" }
   },
   "color-dark": {
     "$description": "overrides for prefers-color-scheme: dark - only the tokens that differ",
-    "bg-primary": { "$value": "#0F172A", "$type": "color" },
-    "accent": { "$value": "#818CF8", "$type": "color" }
+    "bg-primary": { "$value": { "colorSpace": "srgb", "components": [0.0588, 0.0902, 0.1647], "hex": "#0F172A" }, "$type": "color" },
+    "accent": { "$value": { "colorSpace": "srgb", "components": [0.5059, 0.549, 0.9725], "hex": "#818CF8" }, "$type": "color" }
   }
 }
 ```

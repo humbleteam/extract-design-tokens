@@ -106,14 +106,14 @@ Below is an example run against a fictional product, Northwind Analytics, from i
 ```json
 {
   "color": {
-    "bg-primary": { "$value": "#0B1220", "$type": "color" },
-    "bg-secondary": { "$value": "#141C2E", "$type": "color" },
-    "accent": { "$value": "#4F7CFF", "$type": "color" },
-    "accent-hover": { "$value": "#3A63E0", "$type": "color" },
-    "text-primary": { "$value": "#F4F6FB", "$type": "color" },
-    "text-secondary": { "$value": "#8993A8", "$type": "color" },
-    "success": { "$value": "#34C77B", "$type": "color" },
-    "danger": { "$value": "#E4574C", "$type": "color" }
+    "bg-primary": { "$value": { "colorSpace": "srgb", "components": [0.0431, 0.0706, 0.1255], "hex": "#0B1220" }, "$type": "color" },
+    "bg-secondary": { "$value": { "colorSpace": "srgb", "components": [0.0784, 0.1098, 0.1804], "hex": "#141C2E" }, "$type": "color" },
+    "accent": { "$value": { "colorSpace": "srgb", "components": [0.3098, 0.4863, 1], "hex": "#4F7CFF" }, "$type": "color" },
+    "accent-hover": { "$value": { "colorSpace": "srgb", "components": [0.2275, 0.3882, 0.8784], "hex": "#3A63E0" }, "$type": "color" },
+    "text-primary": { "$value": { "colorSpace": "srgb", "components": [0.9569, 0.9647, 0.9843], "hex": "#F4F6FB" }, "$type": "color" },
+    "text-secondary": { "$value": { "colorSpace": "srgb", "components": [0.5373, 0.5765, 0.6588], "hex": "#8993A8" }, "$type": "color" },
+    "success": { "$value": { "colorSpace": "srgb", "components": [0.2039, 0.7804, 0.4824], "hex": "#34C77B" }, "$type": "color" },
+    "danger": { "$value": { "colorSpace": "srgb", "components": [0.8941, 0.3412, 0.298], "hex": "#E4574C" }, "$type": "color" }
   },
   "typography": {
     "font-heading": { "$value": "Sora, system-ui, sans-serif", "$type": "fontFamily" },
@@ -138,7 +138,7 @@ Below is an example run against a fictional product, Northwind Analytics, from i
     "shadow-sm": {
       "$type": "shadow",
       "$value": {
-        "color": "rgba(4, 8, 20, 0.24)",
+        "color": { "colorSpace": "srgb", "components": [0.0157, 0.0314, 0.0784], "alpha": 0.24 },
         "offsetX": { "value": 0, "unit": "px" },
         "offsetY": { "value": 1, "unit": "px" },
         "blur": { "value": 2, "unit": "px" },
@@ -155,7 +155,9 @@ The two blocks hold the same set, which is what makes reading one against the ot
 
 `--shadow-sm` shows the other half of that. Its shape differs between the blocks and its place in the set does not: `shadow` is a composite type, so the JSON carries the offsets, blur and spread as named sub-values with the CSS expression in `$description`, and it is still one custom property against one leaf token. Each of those four is itself a dimension, which is why they carry the same `value` and `unit` object the spacing tokens do rather than a `"0px"` string.
 
-The JSON above is shaped to [version 2025.10](https://www.designtokens.org/TR/2025.10/format/) of the format, with one gap named rather than hidden: its `color` tokens still carry a bare hex, and 2025.10 wants a color `$value` to be an object with a `colorSpace` and `components`, keeping `hex` as an optional fallback. That is the next correction due here.
+The `color` tokens show the third shape in the set. 2025.10 defers the color type to its [Color module](https://www.designtokens.org/TR/2025.10/color/), which wants a `colorSpace` and a `components` array rather than a hex string, so the authored hex stays as the optional six-digit fallback next to the channels it converts to - and it is left off `--shadow-sm`, whose color is 24% opaque and whose fallback would therefore paint solid. Components are written to four decimal places, which is enough to recover an 8-bit channel exactly and no more than the source can support. The count is untouched again: one custom property against one leaf token, whatever shape the value takes.
+
+The JSON above is shaped to [version 2025.10](https://www.designtokens.org/TR/2025.10/format/) of the format throughout.
 
 ```
 Source: palette, typography, spacing, radii, and shadows from https://northwind-analytics.example (computed styles; type scale authored in rem, root font size 16px, --text-xl fluid); motion not extracted - no transitions or hover states were visible in the fetched CSS.
