@@ -210,7 +210,8 @@ Follows the W3C Design Tokens Community Group format, [version 2025.10](https://
     }
   },
   "motion": {
-    "duration-fast": { "$value": { "value": 150, "unit": "ms" }, "$type": "duration" }
+    "duration-fast": { "$value": { "value": 150, "unit": "ms" }, "$type": "duration" },
+    "ease-standard": { "$value": [0.4, 0, 0.2, 1], "$type": "cubicBezier" }
   }
 }
 ```
@@ -244,6 +245,16 @@ Three things the split gets wrong on the way out:
 - **`$description` still carries the CSS expression, byte for byte.** It is the remedy Step 5 and Step 8 already use, and it is what keeps whatever the five sub-values do not hold - an `inset` keyword among them - readable after the split. Read the two forms against each other the way Step 5 asks of a gradient: same color, same offsets, same blur, and an expression in `$description` that matches the custom property exactly.
 
 The token count is untouched by any of this. A composite is one leaf token with one `$value`, whatever that value contains, so five sub-values are not five tokens and two layers are not two.
+
+### An easing curve is four numbers, not a function call
+
+`--ease-standard` is named in Step 2 and the motion group showed only its `duration` sibling, so `cubicBezier` was the one type this skill asks for and never rendered. In 2025.10 its `$value` must be an array of four numbers, read as two control points in the order `[P1x, P1y, P2x, P2y]`, so `cubic-bezier(0.4, 0, 0.2, 1)` keeps its four arguments in order and loses the keyword and the parentheses. `"$value": "cubic-bezier(0.4, 0, 0.2, 1)"` is the CSS-string error arriving on the last primitive that had escaped it.
+
+The bounds are not symmetric: the x coordinates are restricted to `[0, 1]` and the y coordinates can be any real number. Three things follow.
+
+- **An overshoot keeps its number.** `cubic-bezier(0.34, 1.56, 0.64, 1)` is `[0.34, 1.56, 0.64, 1]`, and `1.56` is legal where it sits, because it is a y. Clamping it to 1 to fit a range it was never in deletes the overshoot, which is the behavior the curve was authored for - Step 8's rule against the tidier value, arriving on motion.
+- **An x outside the range is not a near-miss to correct.** `[1.2, 0, 0.2, 1]` is not a legal value, and `cubic-bezier(1.2, 0, 0.2, 1)` is not a legal declaration either, so the browser dropped it and it was never what the element used. Read the next winning declaration instead of pulling the number back to 1.
+- **A keyword converts, and two other timing functions do not.** [CSS Easing Functions Level 1](https://www.w3.org/TR/css-easing-1/) gives `ease` as `cubic-bezier(0.25, 0.1, 0.25, 1)`, `ease-in` as `(0.42, 0, 1, 1)`, `ease-out` as `(0, 0, 0.58, 1)` and `ease-in-out` as `(0.42, 0, 0.58, 1)`, so an authored keyword is a `cubicBezier` token carrying the converted array, with the keyword itself in `$description`. `steps()` is a step easing function and the `linear` keyword is the identity function, and neither is a cubic Bézier, so neither is a `cubicBezier` token: do not fit four numbers to a curve that has none. Say in the footer which timing function the source authored, and leave the shape of that token to the user rather than inventing one.
 
 ### The two blocks carry the same set
 
@@ -313,6 +324,7 @@ never invent a second theme the source does not declare.
 - Do not write a `color` `$value` as a hex string, and do not keep a `hex` fallback on a color whose `alpha` is below 1. The six-digit form cannot carry the alpha, so the fallback renders a translucent color opaque - the CSS expression goes in `$description` instead (Step 6).
 - Do not convert a color the source authored in `oklch`, `lab` or `display-p3` into `srgb` components. That clips it to the sRGB gamut, which is the color version of storing a computed pixel in place of an authored `rem` (Step 8).
 - Do not write a `dimension` or a `duration` `$value` as a CSS string. `"8px"` and `"150ms"` are values glued to their units; 2025.10 wants the number and the unit in their own keys, and that holds for a shadow's four offsets too, since each of them is a dimension.
+- Do not write a `cubicBezier` `$value` as the `cubic-bezier()` call, and do not pull an overshooting control point back into `[0, 1]`. The value is the four numbers as an array, and the range binds the two x coordinates only, so a y above 1 is the authored overshoot and clamping it deletes the behavior (Step 6).
 - Do not put a CSS `box-shadow` string in a `shadow` token's `$value`, and do not split a layered one into a token per layer. It is a composite type: the string is the same invalid-by-type error as a `clamp()` stored as a `dimension`, and the split is the gradient's stops failure on the other composite (Step 6).
 - Do not split a gradient into its stops - not as separate palette tokens, not as long-tail entries, and not as a JSON token whose direction was dropped on the way in.
 - Do not pad a group to a round number - a third shadow that is not in the source, added just to reach 3, is a fabrication. The same goes for padding up to the bottom of a range: a palette lifted from three colors to five invents two, and derives them from the real ones so they read as measured (Step 3).
