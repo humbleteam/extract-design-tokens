@@ -65,7 +65,7 @@ the role does not change when the theme does.
 
 ## JSON shape
 
-The W3C draft gives a token one `$value`, so a themed set cannot be one flat group. Each of those values is a color object, per `SKILL.md` Step 6 - the theme changes which color the role holds, not the shape it is written in. Emit the base
+2025.10 gives a token one `$value`, so a themed set cannot be one flat group. Each of those values is a color object, per `SKILL.md` Step 6 - the theme changes which color the role holds, not the shape it is written in. Emit the base
 set, then a sibling group per additional theme holding only the tokens that differ, and say in the
 group's `$description` what condition it applies under and that it is an override rather than a
 complete set. The overriding group repeats the base token names exactly.

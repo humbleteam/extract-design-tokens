@@ -1,11 +1,11 @@
 ---
 name: extract-design-tokens
-description: Extracts a design-token set - palette, type, spacing, radii, shadows, motion - from a live URL, screenshots, or a CSS file, into CSS custom properties plus a W3C Design Tokens JSON file. Trigger on "extract design tokens from this site", "pull the tokens from this screenshot", "turn this CSS into tokens", "build a token file from this URL". Do not use to find token drift in an existing codebase - use audit-design-tokens for that.
+description: Extracts a design-token set - palette, type, spacing, radii, shadows, motion - from a live URL, screenshots, or a CSS file, into CSS custom properties plus a JSON file in Design Tokens Format Module 2025.10. Trigger on "extract design tokens from this site", "pull the tokens from this screenshot", "turn this CSS into tokens", "build a token file from this URL". Do not use to find token drift in an existing codebase - use audit-design-tokens for that.
 ---
 
 # Extract design tokens
 
-Pull a named, source-linked design-token set out of a URL, a set of screenshots, or a CSS dump. Output both a `:root` CSS block and a JSON file in the W3C Design Tokens Community Group draft shape.
+Pull a named, source-linked design-token set out of a URL, a set of screenshots, or a CSS dump. Output both a `:root` CSS block and a JSON file in the shape [Design Tokens Format Module 2025.10](https://www.designtokens.org/TR/2025.10/format/) gives it, where each `$value` follows the rules for its `$type` rather than carrying the CSS value as authored.
 
 ## When to run this
 
@@ -98,7 +98,7 @@ The marker has one shape per output, and neither is free-form prose. A sentence 
 "motion": { "$description": "not extracted - provide a screenshot/URL and re-run" }
 ```
 
-Never hang the sentence on a leaf token. The draft requires `$value` on every token and requires that value to follow the rules for its `$type`, so `{ "$value": "(not extracted...)", "$type": "duration" }` fails validation and takes the rest of the file down with it. A group with no source data has no token names to put it under in the first place. An empty group is explicitly allowed by the draft as placeholder structure, which is exactly what this is.
+Never hang the sentence on a leaf token. 2025.10 requires `$value` on every token and requires that value to follow the rules for its `$type`, so `{ "$value": "(not extracted...)", "$type": "duration" }` fails validation and takes the rest of the file down with it. A group with no source data has no token names to put it under in the first place. An empty group is explicitly allowed by 2025.10 as placeholder structure, which is exactly what this is.
 
 **Never drop the group from either output.** A missing `motion` key does not read as "not measured", it reads as "this design has no motion" - a claim the source never made. That is the same failure this step exists to prevent, arriving by omission rather than by estimate.
 
@@ -258,7 +258,7 @@ The bounds are not symmetric: the x coordinates are restricted to `[0, 1]` and t
 
 ### The two blocks carry the same set
 
-Read them against each other before delivering, the way Step 5 already asks of a gradient's two forms. Every custom property in the CSS block has its token in the JSON, every group in one is a group in the other, and the not-extracted markers stand in both. There is exactly one legal divergence in the whole set: a `clamp()` is one custom property in CSS and a floor plus a ceiling in JSON, because the draft's `dimension` type cannot hold the expression (Step 8). Anything else on one side and not the other is a token that block deletes - the failure Step 7 describes, arriving inside a single answer instead of across two.
+Read them against each other before delivering, the way Step 5 already asks of a gradient's two forms. Every custom property in the CSS block has its token in the JSON, every group in one is a group in the other, and the not-extracted markers stand in both. There is exactly one legal divergence in the whole set: a `clamp()` is one custom property in CSS and a floor plus a ceiling in JSON, because the `dimension` type in 2025.10 cannot hold the expression (Step 8). Anything else on one side and not the other is a token that block deletes - the failure Step 7 describes, arriving inside a single answer instead of across two.
 
 The count is the fast version of the check. Custom properties in the CSS block, leaf tokens in the JSON, and the two numbers differ by one for each `clamp()` in the set and by nothing else. A composite changes the shape of one side and not the set: `--shadow-sm` is one custom property and one leaf token whether its `$value` is an object, an array of two, or the string it should never have been. A color object does the same - `--bg-primary` is one property against one token whether the JSON holds a hex string or the `colorSpace` and `components` that replaced it.
 

@@ -12,7 +12,7 @@
 
 </div>
 
-`extract-design-tokens` turns a production URL, screenshots, or a raw CSS file into a design-token set: role-named CSS custom properties plus JSON in the W3C Design Tokens Community Group format. The rule that keeps it honest: any value not visible in the source is marked not extracted, never guessed.
+`extract-design-tokens` turns a production URL, screenshots, or a raw CSS file into a design-token set: role-named CSS custom properties plus JSON in Design Tokens Format Module 2025.10. The rule that keeps it honest: any value not visible in the source is marked not extracted, never guessed.
 
 ## Table of contents
 
@@ -30,7 +30,7 @@
 
 - Reads a live URL, screenshots, or a CSS/SCSS file and pulls out color, typography, spacing, radii, shadow, and motion values.
 - Names every token by role (`--accent`, `--text-secondary`), not by value (`--blue-500`), so the set survives a rebrand.
-- Outputs a ready-to-paste `:root` CSS block and JSON in the W3C Design Tokens Community Group draft shape, every time.
+- Outputs a ready-to-paste `:root` CSS block and JSON in Design Tokens Format Module 2025.10, every time, with each `$value` in the shape that version gives its `$type`.
 - Groups any color past the first 5-8 structural ones into a flagged long tail, instead of padding the main palette with near-duplicates.
 - Leaves a small palette small. A design built on three colors comes back as three tokens, not five with two derived from the others - padding is the same fabrication at whichever end of the range it happens.
 - Marks every unconfirmed value as `not extracted - provide a screenshot/URL and re-run` instead of guessing, in a form each file actually keeps: a comment in the CSS, an empty group with a `$description` in the JSON.
@@ -168,8 +168,8 @@ Source: palette, typography, spacing, radii, and shadows from https://northwind-
 - **Fixed capture order.** Palette, typography, spacing, radii, shadows, motion, every run, so nothing gets skipped by accident.
 - **Role-first naming.** Tokens are named for what they do (`--bg-primary`), not what they equal (`--slate-900`), so a rebrand is a value swap, not a rename across the codebase.
 - **A palette range, not a quota.** The main palette holds the colors carrying a clear structural role, usually 5 to 8. Everything past that goes to a flagged long tail; a source with fewer returns fewer, since a color derived to fill out the range is still a color the source never had.
-- **No invented values, ever.** A group with no usable source data is marked not extracted in both the CSS and the JSON, per group - and never dropped, because a missing group reads as a claim that the design has none. The marker takes the shape each format preserves: a CSS comment, since bare prose in a `:root` block is a parse error that also deletes the declaration after it, and an empty JSON group carrying `$description`, since the draft requires every token's `$value` to match its `$type`.
-- **Two outputs, always.** A `:root` CSS block for immediate use, and JSON in the W3C Design Tokens Community Group draft shape (`$value` / `$type`) for tooling.
+- **No invented values, ever.** A group with no usable source data is marked not extracted in both the CSS and the JSON, per group - and never dropped, because a missing group reads as a claim that the design has none. The marker takes the shape each format preserves: a CSS comment, since bare prose in a `:root` block is a parse error that also deletes the declaration after it, and an empty JSON group carrying `$description`, since 2025.10 requires every token's `$value` to match its `$type`.
+- **Two outputs, always.** A `:root` CSS block for immediate use, and JSON in Design Tokens Format Module 2025.10 for tooling - `$value` and `$type` per token, with the `$value` in the shape that version requires of its type.
 - **A source footer on every answer.** Each group traces back to a URL, a named screenshot file, or a CSS file, and names the root font size whenever the set contains `rem` values.
 - **Authored units survive.** A computed value settles which declaration wins, not what the token says. Storing the pixel a `rem` resolved to hard-codes the browser default and drops the reader's own font-size setting; storing a `clamp()` as one number produces a value no other viewport agrees with.
 - **Complete-set re-emission.** Updating one token means re-emitting the whole set - a partial answer would silently delete every token left out.
