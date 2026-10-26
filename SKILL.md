@@ -173,6 +173,7 @@ A single `:root { }` block, grouped by section with a comment header per group, 
   /* Motion */
   --duration-fast: 150ms;
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-standard: var(--duration-fast) var(--ease-standard);
 }
 ```
 
@@ -211,7 +212,16 @@ Follows the W3C Design Tokens Community Group format, [version 2025.10](https://
   },
   "motion": {
     "duration-fast": { "$value": { "value": 150, "unit": "ms" }, "$type": "duration" },
-    "ease-standard": { "$value": [0.4, 0, 0.2, 1], "$type": "cubicBezier" }
+    "ease-standard": { "$value": [0.4, 0, 0.2, 1], "$type": "cubicBezier" },
+    "transition-standard": {
+      "$value": {
+        "duration": "{motion.duration-fast}",
+        "delay": { "value": 0, "unit": "ms" },
+        "timingFunction": "{motion.ease-standard}"
+      },
+      "$type": "transition",
+      "$description": "150ms cubic-bezier(0.4, 0, 0.2, 1)"
+    }
   }
 }
 ```
@@ -255,6 +265,18 @@ The bounds are not symmetric: the x coordinates are restricted to `[0, 1]` and t
 - **An overshoot keeps its number.** `cubic-bezier(0.34, 1.56, 0.64, 1)` is `[0.34, 1.56, 0.64, 1]`, and `1.56` is legal where it sits, because it is a y. Clamping it to 1 to fit a range it was never in deletes the overshoot, which is the behavior the curve was authored for - Step 8's rule against the tidier value, arriving on motion.
 - **An x outside the range is not a near-miss to correct.** `[1.2, 0, 0.2, 1]` is not a legal value, and `cubic-bezier(1.2, 0, 0.2, 1)` is not a legal declaration either, so the browser dropped it and it was never what the element used. Read the next winning declaration instead of pulling the number back to 1.
 - **A keyword converts, and two other timing functions do not.** [CSS Easing Functions Level 1](https://www.w3.org/TR/css-easing-1/) gives `ease` as `cubic-bezier(0.25, 0.1, 0.25, 1)`, `ease-in` as `(0.42, 0, 1, 1)`, `ease-out` as `(0, 0, 0.58, 1)` and `ease-in-out` as `(0.42, 0, 0.58, 1)`, so an authored keyword is a `cubicBezier` token carrying the converted array, with the keyword itself in `$description`. `steps()` is a step easing function and the `linear` keyword is the identity function, and neither is a cubic Bézier, so neither is a `cubicBezier` token: do not fit four numbers to a curve that has none. Say in the footer which timing function the source authored, and leave the shape of that token to the user rather than inventing one.
+
+### A transition is the pairing, not two loose primitives
+
+Step 2 names `--duration-fast`, `--duration-slow` and `--ease-standard`, and the motion group has emitted them loose: two durations, one curve, and nothing saying which belongs to which. The pairing is in the source. A declaration reading `transition: opacity 150ms cubic-bezier(0.4, 0, 0.2, 1)` binds that duration to that curve, and splitting it into two tokens drops the one thing the declaration said beyond the two numbers. A consumer holding a fast duration, a slow duration and one curve has to guess which pairs with which, and a guess standing in for something the source stated plainly is what Step 4 refuses everywhere else in this skill.
+
+2025.10 has the type for it. Section 9.5 defines `transition` as a composite whose `$value` is an object of exactly three sub-values: a `duration`, a `delay` which is also a duration, and a `timingFunction` which is a cubic Bézier. Each one is either the value written out or a reference to a token of that type, which section 9 allows for every composite. So the pairing gets a token of its own and the numbers stay where they already live.
+
+- **The sub-values are references, not copies.** `"duration": "{motion.duration-fast}"` and `"timingFunction": "{motion.ease-standard}"`, never the duration object or the four-number array written a second time. The primitives are the named roles and the composite's job is the pairing, so a composite carrying its own `150` is a second home for a value that has one, and nothing in either block reads the two against each other.
+- **`delay` is required, and a declaration that names none has a delay of zero.** All three sub-values are mandatory in 9.5. [CSS Transitions Level 1](https://www.w3.org/TR/css-transitions-1/) gives `transition-delay` an initial value of `0s`, so a source that writes one time is not silent about the delay - it ran without one, and `{ "value": 0, "unit": "ms" }` is that reading rather than an estimate. It is written out rather than referenced, because no role in the set is named for it, and adding `--duration-none` to carry a zero would be naming a token after its value against Step 2.
+- **No pairing in the source, no composite.** A CSS file listing durations and curves in a variables block and never putting them in one `transition` shows the primitives and not the pairing. Emit the primitives alone and leave the pairing out: inventing one is Step 4 arriving on motion, and it is the easier mistake to make here because the two halves are sitting right there.
+
+In the CSS block the composite is one custom property built from the two it pairs, `--transition-standard: var(--duration-fast) var(--ease-standard);`, which is the same single home for each number on that side and is usable as written, since a `transition` shorthand carrying one time reads it as the duration and leaves the delay at its initial `0s`. The count rule below is untouched: one custom property against one leaf token, the way a shadow is.
 
 ### The two blocks carry the same set
 
@@ -325,6 +347,7 @@ never invent a second theme the source does not declare.
 - Do not convert a color the source authored in `oklch`, `lab` or `display-p3` into `srgb` components. That clips it to the sRGB gamut, which is the color version of storing a computed pixel in place of an authored `rem` (Step 8).
 - Do not write a `dimension` or a `duration` `$value` as a CSS string. `"8px"` and `"150ms"` are values glued to their units; 2025.10 wants the number and the unit in their own keys, and that holds for a shadow's four offsets too, since each of them is a dimension.
 - Do not write a `cubicBezier` `$value` as the `cubic-bezier()` call, and do not pull an overshooting control point back into `[0, 1]`. The value is the four numbers as an array, and the range binds the two x coordinates only, so a y above 1 is the authored overshoot and clamping it deletes the behavior (Step 6).
+- Do not emit a duration and a curve the source paired as two loose tokens and leave the pairing out, and do not write a `transition` composite for a pairing the source never made. The type is three sub-values and all three are required, with the duration and the timing function as references to the tokens that already hold them rather than second copies (Step 6).
 - Do not put a CSS `box-shadow` string in a `shadow` token's `$value`, and do not split a layered one into a token per layer. It is a composite type: the string is the same invalid-by-type error as a `clamp()` stored as a `dimension`, and the split is the gradient's stops failure on the other composite (Step 6).
 - Do not split a gradient into its stops - not as separate palette tokens, not as long-tail entries, and not as a JSON token whose direction was dropped on the way in.
 - Do not pad a group to a round number - a third shadow that is not in the source, added just to reach 3, is a fabrication. The same goes for padding up to the bottom of a range: a palette lifted from three colors to five invents two, and derives them from the real ones so they read as measured (Step 3).
