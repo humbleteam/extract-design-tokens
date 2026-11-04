@@ -116,8 +116,8 @@ Below is an example run against a fictional product, Northwind Analytics, from i
     "danger": { "$value": { "colorSpace": "srgb", "components": [0.8941, 0.3412, 0.298], "hex": "#E4574C" }, "$type": "color" }
   },
   "typography": {
-    "font-heading": { "$value": "Sora, system-ui, sans-serif", "$type": "fontFamily" },
-    "font-body": { "$value": "Inter, system-ui, sans-serif", "$type": "fontFamily" },
+    "font-heading": { "$value": ["Sora", "system-ui", "sans-serif"], "$type": "fontFamily" },
+    "font-body": { "$value": ["Inter", "system-ui", "sans-serif"], "$type": "fontFamily" },
     "text-sm": { "$value": { "value": 0.875, "unit": "rem" }, "$type": "dimension" },
     "text-base": { "$value": { "value": 1, "unit": "rem" }, "$type": "dimension" },
     "text-lg": { "$value": { "value": 1.375, "unit": "rem" }, "$type": "dimension" },
@@ -189,7 +189,7 @@ Give Claude the URL and ask it to extract design tokens. With this skill install
 It can extract a starting token set from screenshots, with colors, spacing, and type read visually and marked as estimates. Pairing a screenshot with the live URL or CSS, when available, gives higher-confidence values.
 
 **What format should design tokens be in?**
-CSS custom properties for immediate use, plus JSON in the shape [Design Tokens Format Module 2025.10](https://www.designtokens.org/TR/2025.10/format/) gives it, the format most token-consuming build tools expect. Every token carries a `$value` and a `$type`, and the version matters because the `$value` has to follow the rules for that type: a `dimension` and a `duration` are a number and a unit in their own keys, a `color` is a `colorSpace` with a `components` array, a `cubicBezier` is four numbers in an array, and `fontFamily` is the only one here that takes the string as authored. Where the source pairs a duration with a timing function in one `transition` declaration, that pairing is emitted as a `transition` composite whose sub-values reference the two tokens rather than copying them, so the pairing is carried and each number keeps one home.
+CSS custom properties for immediate use, plus JSON in the shape [Design Tokens Format Module 2025.10](https://www.designtokens.org/TR/2025.10/format/) gives it, the format most token-consuming build tools expect. Every token carries a `$value` and a `$type`, and the version matters because the `$value` has to follow the rules for that type: a `dimension` and a `duration` are a number and a unit in their own keys, a `color` is a `colorSpace` with a `components` array, a `cubicBezier` is four numbers in an array, and a `fontFamily` is one font name as a string or a stack as an array of single names rather than the comma-joined CSS value. Where the source pairs a duration with a timing function in one `transition` declaration, that pairing is emitted as a `transition` composite whose sub-values reference the two tokens rather than copying them, so the pairing is carried and each number keeps one home.
 
 **How many colors should a design system have?**
 There is no fixed number, but a palette past 8 structural colors usually signals drift, not intentional variety. This skill expects 5-8 roles and flags the rest as a long tail for cleanup. The range runs both ways: a three-color design comes back as three tokens, because reaching five would mean inventing two.

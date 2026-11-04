@@ -188,7 +188,7 @@ Follows the W3C Design Tokens Community Group format, [version 2025.10](https://
     "accent": { "$value": { "colorSpace": "srgb", "components": [0.3882, 0.4, 0.9451], "hex": "#6366F1" }, "$type": "color" }
   },
   "typography": {
-    "font-heading": { "$value": "Inter, system-ui, sans-serif", "$type": "fontFamily" },
+    "font-heading": { "$value": ["Inter", "system-ui", "sans-serif"], "$type": "fontFamily" },
     "text-base": { "$value": { "value": 1, "unit": "rem" }, "$type": "dimension" }
   },
   "spacing": {
@@ -246,7 +246,7 @@ Every color value in the output follows this, not only the ones in the `color` g
 
 ### Composite types carry an object, not the CSS string
 
-A `$value` has to follow the rules for its `$type`, and in [Design Tokens Format Module 2025.10](https://www.designtokens.org/TR/2025.10/format/), the Final Community Group Report of 28 October 2025, most of the types this skill emits want an object rather than the CSS value as authored - `color` among them, per the subsection above. `fontFamily` takes the string. `dimension` is a numeric `value` with a `unit` of `"px"` or `"rem"`, `duration` is a numeric `value` with a `unit` of `"ms"` or `"s"`, and `shadow` is a composite of `color`, `offsetX`, `offsetY`, `blur` and `spread` whose four offsets are each a dimension - so `"$value": "8px"` under `dimension`, `"$value": "150ms"` under `duration` and `"$value": "0 1px 2px rgba(0, 0, 0, 0.06)"` under `shadow` are all one error: a CSS value sitting in a slot that does not accept one. It is the same error as a `clamp()` stored as a `dimension` (Step 8) and a gradient flattened to its stops (Step 5), and naming the version is the point - an unversioned claim about a moving document is what let three of these stand in this skill's own worked example.
+A `$value` has to follow the rules for its `$type`, and in [Design Tokens Format Module 2025.10](https://www.designtokens.org/TR/2025.10/format/), the Final Community Group Report of 28 October 2025, most of the types this skill emits want an object rather than the CSS value as authored - `color` among them, per the subsection above. `fontFamily` takes a string only where the value is one font name, and an array where it is a stack, per the subsection below. `dimension` is a numeric `value` with a `unit` of `"px"` or `"rem"`, `duration` is a numeric `value` with a `unit` of `"ms"` or `"s"`, and `shadow` is a composite of `color`, `offsetX`, `offsetY`, `blur` and `spread` whose four offsets are each a dimension - so `"$value": "8px"` under `dimension`, `"$value": "150ms"` under `duration` and `"$value": "0 1px 2px rgba(0, 0, 0, 0.06)"` under `shadow` are all one error: a CSS value sitting in a slot that does not accept one. It is the same error as a `clamp()` stored as a `dimension` (Step 8) and a gradient flattened to its stops (Step 5), and naming the version is the point - an unversioned claim about a moving document is what let three of these stand in this skill's own worked example.
 
 Three things the split gets wrong on the way out:
 
@@ -256,9 +256,39 @@ Three things the split gets wrong on the way out:
 
 The token count is untouched by any of this. A composite is one leaf token with one `$value`, whatever that value contains, so five sub-values are not five tokens and two layers are not two.
 
+### A font stack is an array, not one string
+
+`fontFamily` was the one type this skill named as taking the value as authored, and the worked block
+read `"$value": "Inter, system-ui, sans-serif"`. Section 8.3 of 2025.10, read off the document rather
+than from memory, represents the type as "a font name or an array of font names (ordered from most to
+least preferred)" and requires the value to be "either a string value containing a single font name or
+an array of strings, each being a single font name". Three names joined by commas is neither: it is the
+CSS value as authored sitting in a slot that takes one name, the same invalid-by-type error as `"8px"`
+under a `dimension`, and it was the last primitive in this skill still carrying it.
+
+```json
+"font-heading": { "$value": ["Inter", "system-ui", "sans-serif"], "$type": "fontFamily" }
+```
+
+- **One name is the string, a stack is the array.** A source whose heading font is a single family
+  emits the string. The array arrives with the second name, and the CSS fallback chain is exactly that
+  case, so most sets land on the array.
+- **The order is part of the value.** The spec reads the array most to least preferred, which is the
+  order the declaration was written in, so the array follows the declaration and nothing in it gets
+  sorted or deduplicated.
+- **A generic family is one of the names.** `system-ui`, `sans-serif` and `monospace` are the last
+  entries of the stacks this skill reads, and the spec's own example carries `sans-serif` as an array
+  entry, so they stay in rather than being dropped as CSS keywords.
+- **CSS quotes are syntax, not part of the name.** `--font-heading: 'Inter', system-ui, sans-serif`
+  quotes the first family because CSS needs it for names with spaces or names that collide with a
+  keyword. The token carries the name, so the entry is `"Inter"` and the quoting does not travel.
+- **The count is untouched.** An array `$value` is one leaf token with one value, the way a gradient's
+  stop list and a layered shadow already are, so a three-name stack is one token against one custom
+  property and not three.
+
 ### An easing curve is four numbers, not a function call
 
-`--ease-standard` is named in Step 2 and the motion group showed only its `duration` sibling, so `cubicBezier` was the one type this skill asks for and never rendered. In 2025.10 its `$value` must be an array of four numbers, read as two control points in the order `[P1x, P1y, P2x, P2y]`, so `cubic-bezier(0.4, 0, 0.2, 1)` keeps its four arguments in order and loses the keyword and the parentheses. `"$value": "cubic-bezier(0.4, 0, 0.2, 1)"` is the CSS-string error arriving on the last primitive that had escaped it.
+`--ease-standard` is named in Step 2 and the motion group showed only its `duration` sibling, so `cubicBezier` was the one type this skill asks for and never rendered. In 2025.10 its `$value` must be an array of four numbers, read as two control points in the order `[P1x, P1y, P2x, P2y]`, so `cubic-bezier(0.4, 0, 0.2, 1)` keeps its four arguments in order and loses the keyword and the parentheses. `"$value": "cubic-bezier(0.4, 0, 0.2, 1)"` is the CSS-string error arriving on another primitive that had escaped it.
 
 The bounds are not symmetric: the x coordinates are restricted to `[0, 1]` and the y coordinates can be any real number. Three things follow.
 
@@ -327,6 +357,7 @@ never invent a second theme the source does not declare.
 - **Fewer than 5 palette colors**: see Step 3. Emit what the source has. The 5 to 8 range is what a typical source yields, not a floor the output has to reach, and a color derived from another one - a secondary text at 60% opacity, a border grey mixed between background and text - is invented by a method that makes it look measured. Where one hex serves two roles, alias the second to the first instead of declaring the color twice, and say the palette's size in the footer so a small set does not read as an incomplete one.
 - **Gradients**: see Step 5. One role, one token, in both outputs. Stops never count toward the Step 1 palette or land on the Step 3 long tail, and the JSON token carries the full CSS expression in `$description`, since its stop array cannot hold the gradient's direction. Each stop's `color` is a color value, so it carries the object form, not the hex.
 - **Colors in the JSON block**: a `color` `$value` is an object with a `colorSpace` and a `components` array, an `alpha` only where the source color has one, and the authored hex kept as the six-digit `hex` fallback on an opaque color and left off a translucent one. The same shape applies wherever a color value appears - a gradient's stops, a shadow's `color`. See Step 6.
+- **Font families in the JSON block**: a `fontFamily` `$value` is a string only where the source names one family, and an array of single names where it names a stack. A comma-joined `"Inter, system-ui, sans-serif"` is the CSS value as authored, not one font name. The array keeps the declaration's order, keeps the generic family at the end, and drops the CSS quoting. See Step 6.
 - **Shadows in the JSON block**: `shadow` is a composite type, so its `$value` is an object of `color`, `offsetX`, `offsetY`, `blur` and `spread`, every sub-value carrying a unit with `0px` written out, its `color` carrying the color object, and a layered `box-shadow` is one token holding an array of them. The CSS expression goes in `$description`, as it does for a gradient and a `clamp()`. See Step 6.
 - **A whole group has no usable source data**: see Step 4. The marker is a CSS comment and an empty JSON group with `$description` - never bare text in the `:root` block, never a token `$value`, and never a group quietly left out.
 - **No URL, screenshot, or CSS given**: ask for one of the three. Do not fabricate a plausible-looking palette.
@@ -346,6 +377,7 @@ never invent a second theme the source does not declare.
 - Do not write a `color` `$value` as a hex string, and do not keep a `hex` fallback on a color whose `alpha` is below 1. The six-digit form cannot carry the alpha, so the fallback renders a translucent color opaque - the CSS expression goes in `$description` instead (Step 6).
 - Do not convert a color the source authored in `oklch`, `lab` or `display-p3` into `srgb` components. That clips it to the sRGB gamut, which is the color version of storing a computed pixel in place of an authored `rem` (Step 8).
 - Do not write a `dimension` or a `duration` `$value` as a CSS string. `"8px"` and `"150ms"` are values glued to their units; 2025.10 wants the number and the unit in their own keys, and that holds for a shadow's four offsets too, since each of them is a dimension.
+- Do not write a `fontFamily` `$value` as one comma-joined CSS stack. The value is one font name as a string or an array of single names in the declaration's order, so `"Inter, system-ui, sans-serif"` is the CSS-value error on the type that looked exempt from it (Step 6).
 - Do not write a `cubicBezier` `$value` as the `cubic-bezier()` call, and do not pull an overshooting control point back into `[0, 1]`. The value is the four numbers as an array, and the range binds the two x coordinates only, so a y above 1 is the authored overshoot and clamping it deletes the behavior (Step 6).
 - Do not emit a duration and a curve the source paired as two loose tokens and leave the pairing out, and do not write a `transition` composite for a pairing the source never made. The type is three sub-values and all three are required, with the duration and the timing function as references to the tokens that already hold them rather than second copies (Step 6).
 - Do not put a CSS `box-shadow` string in a `shadow` token's `$value`, and do not split a layered one into a token per layer. It is a composite type: the string is the same invalid-by-type error as a `clamp()` stored as a `dimension`, and the split is the gradient's stops failure on the other composite (Step 6).
