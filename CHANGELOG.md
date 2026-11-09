@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.14.0] - 2026-11-09
+
+- The `typography` question left open on 11-04 is settled, and the answer is that the composite stays out rather than that it was missing. Section 9.8 of 2025.10 defines `typography` as an object of exactly five sub-values - `fontFamily`, `fontSize`, `fontWeight`, `letterSpacing`, `lineHeight` - and Step 1 captures the first two. A composite emitted from a family and a size would have to invent a weight, a letter spacing and a line height, which is Step 4 arriving on type.
+- It is the opposite of the `transition` case 1.12.0 added, and the two now say so against each other. There, every sub-value is a type this skill already captures and only the pairing had to be read off the source, so the composite was available as soon as the source made it. Here three of the five were never read at all, so no source can make it available.
+- The group key was the other half of the gap. The JSON has filed a `fontFamily` token and the type scale's `dimension` tokens under a `typography` key since 1.0.0, and section 9.2 keeps groups and composites apart: a tool must not infer a token's type from the group it sits in. So the key names a container and types nothing, and a reader meeting a `typography` group with no `typography` token in it now finds that stated rather than inferred.
+- The conditions for growing into it are written down, with the two sub-values whose types are easy to get wrong. `lineHeight` is a `number` per 8.7, read as a multiplier of the font size, so `line-height: 1.5` is the value as authored while `line-height: 24px` is a dimension and converting it means dividing by the font size - the computed read Step 8 refuses. `fontWeight` per 8.4 is a number from 1 to 1000 or one of the spec's keywords, each an alias for an exact number, and everything else must be rejected: a capitalised `Bold`, a quoted `"600"`, and `bolder` and `lighter`, which compute against the inherited weight and name no weight alone. A screenshot supplies none of the three honestly.
+- New Step 6 subsection and one Do-not entry. No token changed, no example changed and no count moved: the README example still reconciles at 21 custom properties against 22 leaf tokens with `--text-xl` the only name that differs, and every JSON block in the repo still parses.
+
 ## [1.13.0] - 2026-11-04
 
 - `fontFamily` was the one type this repo said takes the CSS value as authored, and it does not. Step 6 read "`fontFamily` takes the string" and the README's output claim called it "the only one here that takes the string as authored", so three worked values stood as comma-joined stacks: `"Inter, system-ui, sans-serif"` in the `SKILL.md` block, `"Sora, system-ui, sans-serif"` and `"Inter, system-ui, sans-serif"` in the README's.
